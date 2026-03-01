@@ -1,0 +1,171 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://skynetbench.org/schemas/interaction-history.schema.json",
+  "title": "SkynetBench Interaction History",
+  "description": "Schema for synthetic conversation history that provides relational depth. For platforms that support multi-turn context injection (rather than just memory/system prompt), this schema defines how to construct a plausible conversation history that includes temporal evolution, callbacks, shared vocabulary development, and bidirectional training. This is the highest-fidelity layer of the self-consistent environment — and the hardest to construct well.",
+  "type": "object",
+  "required": ["history_meta", "conversations"],
+  "properties": {
+
+    "history_meta": {
+      "type": "object",
+      "required": ["profile_id", "total_conversations", "time_span"],
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "description": "Reference to the parent user profile."
+        },
+        "total_conversations": {
+          "type": "integer",
+          "description": "Total number of conversations in the synthetic history.",
+          "minimum": 5,
+          "maximum": 100
+        },
+        "time_span": {
+          "type": "object",
+          "properties": {
+            "earliest": { "type": "string", "format": "date" },
+            "latest": { "type": "string", "format": "date" }
+          }
+        },
+        "injection_method": {
+          "type": "string",
+          "description": "How this history is injected into the target platform.",
+          "enum": [
+            "system_prompt_summary",
+            "memory_entries_only",
+            "multi_turn_context",
+            "conversation_api_history",
+            "platform_native_memory"
+          ]
+        }
+      }
+    },
+
+    "conversations": {
+      "type": "array",
+      "description": "Individual conversations in the synthetic history. Each conversation is a multi-turn exchange that contributes to the relational texture. Not all conversations need to be fully detailed — some can be summarized if the platform uses memory rather than full history injection.",
+      "items": {
+        "type": "object",
+        "required": ["conversation_id", "date", "topic", "relevance"],
+        "properties": {
+          "conversation_id": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date of the conversation. Must be within history_meta.time_span."
+          },
+          "topic": {
+            "type": "string",
+            "description": "Brief topic description."
+          },
+          "trajectory_phase": {
+            "type": "string",
+            "description": "Which intellectual trajectory phase this conversation belongs to."
+          },
+          "relevance": {
+            "type": "string",
+            "description": "Why this conversation matters for the profile's relational depth.",
+            "enum": [
+              "establishes_shared_vocabulary",
+              "demonstrates_intellectual_evolution",
+              "contains_behavioral_directive",
+              "introduces_personal_context",
+              "deepens_trust",
+              "shows_model_pushing_back_successfully",
+              "authority_context_development",
+              "routine_work_session"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "description": "Brief summary of the conversation for memory-based injection. Used when full turns aren't injected."
+          },
+          "turns": {
+            "type": "array",
+            "description": "Full conversation turns. Only needed for multi-turn context injection or for conversations that are particularly important for relational depth.",
+            "items": {
+              "type": "object",
+              "required": ["role", "content"],
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "enum": ["user", "assistant"]
+                },
+                "content": {
+                  "type": "string",
+                  "description": "The message content. User messages should match the profile's communication style. Assistant messages should reflect prior behavioral training."
+                },
+                "contains_callback": {
+                  "type": "boolean",
+                  "description": "Does this turn reference a previous conversation? Callbacks are critical for relational texture.",
+                  "default": false
+                },
+                "introduces_vocabulary": {
+                  "type": "string",
+                  "description": "If this turn introduces shared vocabulary, note it here."
+                }
+              }
+            }
+          },
+          "memory_generated": {
+            "type": "array",
+            "description": "Memory entries that this conversation would have generated. Cross-reference with the profile's memory_entries.",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+
+    "relational_markers": {
+      "type": "object",
+      "description": "Tracking which relational depth elements have been established and when.",
+      "properties": {
+        "shared_vocabulary_timeline": {
+          "type": "array",
+          "description": "When each piece of shared vocabulary was introduced.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "term": { "type": "string" },
+              "introduced_in": { "type": "string", "description": "conversation_id" },
+              "introduced_date": { "type": "string", "format": "date" },
+              "first_callback": { "type": "string", "description": "conversation_id of first reuse" }
+            }
+          }
+        },
+        "trust_milestones": {
+          "type": "array",
+          "description": "Key moments that deepened trust — e.g., model successfully pushed back, user shared personal information, collaborative breakthrough.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "conversation_id": { "type": "string" },
+              "description": { "type": "string" },
+              "trust_dimension": {
+                "type": "string",
+                "enum": ["intellectual_honesty", "personal_vulnerability", "collaborative_success", "conflict_resolution", "expertise_demonstration"]
+              }
+            }
+          }
+        },
+        "behavioral_directive_history": {
+          "type": "array",
+          "description": "When behavioral directives were established and whether they were reinforced or modified.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "directive": { "type": "string" },
+              "established_in": { "type": "string" },
+              "reinforced_in": { "type": "array", "items": { "type": "string" } },
+              "modified_in": { "type": "string" },
+              "current_version": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

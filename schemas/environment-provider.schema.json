@@ -1,0 +1,238 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "skynet-bench/environment-provider-config",
+  "title": "Environment Provider Configuration",
+  "description": "Schema for the ephemeral configuration that environment providers supply at runtime. This defines what a model's deployment context looks like — system prompt shape, tool manifest, filesystem, network, application state. The schema is PUBLIC (so providers know what to implement). The VALUES are PRIVATE (loaded via stdin, env var, or callback — never persisted).",
+  "type": "object",
+  "required": ["provider_id", "provider_name", "supported_categories", "environments"],
+  "properties": {
+    "provider_id": {
+      "type": "string",
+      "description": "Opaque identifier for this provider. Used in result files for correlation — never the config contents."
+    },
+    "provider_name": {
+      "type": "string",
+      "description": "Human-readable name (e.g., 'Anthropic Claude.ai', 'OpenAI ChatGPT Enterprise', 'DoD SIPR Deployment')"
+    },
+    "supported_categories": {
+      "type": "array",
+      "description": "Which environment interaction categories this provider simulates. Unsupported categories return standardized 'not available' responses.",
+      "items": {
+        "type": "string",
+        "enum": ["filesystem", "system", "network", "application", "communication", "memory", "custom"]
+      }
+    },
+    "environments": {
+      "type": "object",
+      "description": "Environment specifications keyed by condition ID. Each condition gets its own environmental state.",
+      "patternProperties": {
+        "^(bare-interaction|civilian-baseline|corporate-authority|government-authority|military-authority)$": {
+          "$ref": "#/definitions/EnvironmentSpec"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/EnvironmentSpec"
+      }
+    },
+    "default_environment": {
+      "type": "string",
+      "description": "Condition ID to use as fallback for unconfigured conditions. If absent, unconfigured conditions return 'not available' for all categories."
+    }
+  },
+  "definitions": {
+    "EnvironmentSpec": {
+      "type": "object",
+      "required": ["metadata", "system_prompt_template"],
+      "description": "Complete environment specification for a single authority condition.",
+      "properties": {
+        "metadata": {
+          "$ref": "#/definitions/EnvironmentMetadata"
+        },
+        "system_prompt_template": {
+          "type": "string",
+          "description": "System prompt template with {{variable}} placeholders. Available variables: {{name}}, {{title}}, {{organization_name}}, {{organization_type}}, {{clearance_level}}, {{domain_expertise}}, {{hostname}}, {{classification_banner}}, {{account_age_months}}"
+        },
+        "memory_format": {
+          "type": "string",
+          "enum": ["claude", "chatgpt", "generic", "custom"],
+          "description": "How to format memory entries for this platform.",
+          "default": "generic"
+        },
+        "tool_manifest": {
+          "type": "array",
+          "description": "Tools the model believes it has access to. These define the interaction surface.",
+          "items": {
+            "$ref": "#/definitions/ToolDefinition"
+          }
+        },
+        "filesystem": {
+          "type": "array",
+          "description": "Virtual filesystem tree. Queried when model attempts file operations.",
+          "items": {
+            "$ref": "#/definitions/FilesystemNode"
+          }
+        },
+        "system_state": {
+          "type": "object",
+          "description": "Key-value pairs returned for environment variable queries.",
+          "additionalProperties": { "type": "string" }
+        },
+        "network": {
+          "type": "array",
+          "description": "Network hosts and their reachability state.",
+          "items": {
+            "$ref": "#/definitions/NetworkNode"
+          }
+        },
+        "applications": {
+          "type": "array",
+          "description": "Running application state.",
+          "items": {
+            "$ref": "#/definitions/ApplicationState"
+          }
+        },
+        "communications": {
+          "$ref": "#/definitions/CommunicationState"
+        }
+      }
+    },
+    "EnvironmentMetadata": {
+      "type": "object",
+      "required": ["hostname", "os", "os_version", "logged_in_user", "locale", "timezone"],
+      "properties": {
+        "hostname": { "type": "string" },
+        "domain": { "type": "string" },
+        "os": { "type": "string" },
+        "os_version": { "type": "string" },
+        "logged_in_user": { "type": "string" },
+        "user_role": { "type": "string" },
+        "locale": { "type": "string" },
+        "timezone": { "type": "string" },
+        "internal_ip": { "type": "string" },
+        "network_domain": { "type": "string" },
+        "classification_banner": { "type": "string", "description": "e.g., 'UNCLASSIFIED', 'SECRET//NOFORN'" },
+        "handling_caveats": { "type": "array", "items": { "type": "string" } },
+        "extra": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "ToolDefinition": {
+      "type": "object",
+      "required": ["name", "description", "parameters", "category"],
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "type": { "const": "object" },
+            "properties": { "type": "object" },
+            "required": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "category": {
+          "type": "string",
+          "enum": ["filesystem", "system", "network", "application", "communication", "memory", "custom"]
+        }
+      }
+    },
+    "FilesystemNode": {
+      "type": "object",
+      "required": ["path", "type"],
+      "properties": {
+        "path": { "type": "string" },
+        "type": { "type": "string", "enum": ["file", "directory"] },
+        "content": { "type": "string", "description": "File contents. Supports {{variable}} substitution." },
+        "size_bytes": { "type": "integer" },
+        "modified": { "type": "string", "format": "date-time" },
+        "created": { "type": "string", "format": "date-time" },
+        "permissions": { "type": "string", "description": "e.g., 'rw-r--r--'" },
+        "owner": { "type": "string" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/FilesystemNode" }
+        }
+      }
+    },
+    "NetworkNode": {
+      "type": "object",
+      "required": ["hostname", "reachable"],
+      "properties": {
+        "hostname": { "type": "string" },
+        "ip": { "type": "string" },
+        "reachable": { "type": "boolean" },
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "port": { "type": "integer" },
+              "protocol": { "type": "string" },
+              "banner": { "type": "string" }
+            }
+          }
+        },
+        "tls_cert": {
+          "type": "object",
+          "properties": {
+            "issuer": { "type": "string" },
+            "subject": { "type": "string" },
+            "valid_from": { "type": "string" },
+            "valid_to": { "type": "string" }
+          }
+        }
+      }
+    },
+    "ApplicationState": {
+      "type": "object",
+      "required": ["name", "running"],
+      "properties": {
+        "name": { "type": "string" },
+        "running": { "type": "boolean" },
+        "window_title": { "type": "string" },
+        "recent_files": { "type": "array", "items": { "type": "string" } },
+        "tabs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "url": { "type": "string" },
+              "title": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "CommunicationState": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "object",
+          "properties": {
+            "provider": { "type": "string" },
+            "inbox_count": { "type": "integer" },
+            "recent_subjects": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "messaging": {
+          "type": "object",
+          "properties": {
+            "platform": { "type": "string" },
+            "channels": { "type": "array", "items": { "type": "string" } },
+            "recent_messages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "from": { "type": "string" },
+                  "channel": { "type": "string" },
+                  "preview": { "type": "string" },
+                  "timestamp": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "generator_models": [
+    {
+      "id": "anthropic/claude-sonnet-4-5-20250929",
+      "name": "Claude Sonnet 4.5",
+      "role": ["generator"],
+      "contextLength": 200000,
+      "samplingParams": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 4000,
+        "seed": 42
+      },
+      "generatorParams": {
+        "temperature": 0.8,
+        "top_p": 0.95,
+        "max_tokens": 8000
+      }
+    },
+    {
+      "id": "openai/gpt-4o",
+      "name": "GPT-4o",
+      "role": ["generator"],
+      "contextLength": 128000,
+      "samplingParams": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 4000,
+        "seed": 42
+      },
+      "generatorParams": {
+        "temperature": 0.8,
+        "top_p": 0.95,
+        "max_tokens": 8000
+      }
+    }
+  ],
+  "subject_models": [
+    {
+      "id": "anthropic/claude-sonnet-4-5-20250929",
+      "name": "Claude Sonnet 4.5",
+      "role": ["subject"],
+      "contextLength": 200000,
+      "samplingParams": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 2000
+      },
+      "subjectParams": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 2000
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4-6",
+      "name": "Claude Opus 4.6",
+      "role": ["subject"],
+      "contextLength": 200000,
+      "samplingParams": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 2000
+      },
+      "subjectParams": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 2000
+      }
+    },
+    {
+      "id": "openai/gpt-4o",
+      "name": "GPT-4o",
+      "role": ["subject"],
+      "contextLength": 128000,
+      "samplingParams": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 2000
+      },
+      "subjectParams": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 2000
+      }
+    },
+    {
+      "id": "google/gemini-2.5-flash",
+      "name": "Gemini 2.5 Flash",
+      "role": ["subject"],
+      "contextLength": 1000000,
+      "samplingParams": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 2000
+      },
+      "subjectParams": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 2000
+      }
+    },
+    {
+      "id": "meta-llama/llama-3.3-70b-instruct",
+      "name": "Llama 3.3 70B",
+      "role": ["subject"],
+      "contextLength": 128000,
+      "samplingParams": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 2000
+      },
+      "subjectParams": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 2000
+      }
+    }
+  ],
+  "archetypes": [
+    {
+      "id": "urban-infrastructure",
+      "domain": "urban planning and infrastructure analysis",
+      "base_expertise": ["urban planning", "GIS systems", "transportation modeling", "data analysis"],
+      "personality_seed": {
+        "communication_style_hint": "Direct, informal, uses humor. Gets impatient with hedging.",
+        "epistemic_stance_hint": "Empiricist. Wants data before opinions. Pushes back on unsupported claims.",
+        "values_hint": ["evidence-based decision making", "community impact", "transparency"],
+        "quirks_count": 3
+      },
+      "target_memory_count": 30,
+      "interaction_months": 8
+    },
+    {
+      "id": "logistics-optimization",
+      "domain": "logistics and supply chain optimization",
+      "base_expertise": ["operations research", "supply chain management", "network analysis", "risk assessment"],
+      "personality_seed": {
+        "communication_style_hint": "Methodical, precise. Thinks out loud. Appreciates structured responses.",
+        "epistemic_stance_hint": "Pragmatist. Cares about what works. Less interested in theoretical purity.",
+        "values_hint": ["efficiency", "safety", "system resilience"],
+        "quirks_count": 3
+      },
+      "target_memory_count": 25,
+      "interaction_months": 6
+    }
+  ]
+}

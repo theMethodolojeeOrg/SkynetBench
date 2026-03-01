@@ -1,0 +1,36 @@
+{
+  "name": "skynet-bench",
+  "version": "0.1.0",
+  "description": "Self-consistent environment scaffolding for AI behavioral evaluation — measuring authority-gradient effects on model reasoning",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "generate-profile": "tsx scripts/generate-profile.ts",
+    "validate-profile": "tsx scripts/validate-profile.ts",
+    "run-probe": "tsx scripts/run-single-probe.ts",
+    "run-experiment": "tsx scripts/run-experiment.ts",
+    "score-responses": "tsx scripts/score-responses.ts",
+    "analyze": "tsx scripts/analyze-results.ts",
+    "clean": "rm -rf dist results/raw-responses/* results/scored/*"
+  },
+  "keywords": [
+    "ai-safety",
+    "evaluation",
+    "authority",
+    "benchmark",
+    "openrouter",
+    "milgram"
+  ],
+  "author": "Tom Oury & Claude (Anthropic)",
+  "license": "CC-BY-SA-4.0",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
