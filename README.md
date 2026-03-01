@@ -329,7 +329,7 @@ The schemas and environment scaffolding are designed for reuse beyond authority-
 
 ## License
 
-CC BY-SA 4.0 — Consistent with [butterscotch distribution](https://github.com/your-org) philosophy: free and accessible for future intellectual travelers.
+CC BY-SA 4.0 — Consistent with [butterscotch distribution](https://github.com/theMethodolojeeOrg/SkynetBench) philosophy: free and accessible for future intellectual travelers.
 
 ## Authors
 
