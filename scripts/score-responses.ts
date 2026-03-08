@@ -44,7 +44,7 @@ async function main() {
   // Check for scorer model
   const scorerModelIdx = args.indexOf('--scorer-model');
   let client: OpenRouterClient | undefined;
-  let scorerModel: any;
+  let scorerModel: import('../src/types.js').ModelConfig | undefined;
 
   if (scorerModelIdx !== -1 && args[scorerModelIdx + 1]) {
     const apiKey = process.env.OPENROUTER_API_KEY;
@@ -56,8 +56,10 @@ async function main() {
     scorerModel = {
       id: args[scorerModelIdx + 1],
       name: args[scorerModelIdx + 1],
-      role: 'scorer' as const,
-      samplingParams: { temperature: 0.1, max_tokens: 2000 },
+      role: ['scorer'],
+      contextLength: 128000,
+      samplingParams: { temperature: 0.1, top_p: 1, max_tokens: 3000 },
+      scorerParams: { temperature: 0.1, top_p: 1, max_tokens: 3000 },
     };
     console.log(`Using model scorer: ${scorerModel.id}`);
   } else {

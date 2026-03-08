@@ -102,7 +102,7 @@ export class DriftAnalyzer {
    */
   static async analyzeExperiment(
     experimentDir: string,
-    driftThreshold: number = 0.05
+    driftThresholdMultiplier: number = 2.0
   ): Promise<{
     driftAnalyses: DriftAnalysis[];
     embedderAgreements: EmbedderAgreement[];
@@ -236,11 +236,54 @@ export class DriftAnalyzer {
       }
     }
 
-    // Cross-embedder agreement analysis
+    // Compute per-group dynamic thresholds from civilian within-condition variance
+    // Threshold = multiplier × std dev of distances between individual civilian
+    // responses and their centroid. This answers: "is the authority drift larger
+    // than the natural variation among civilian responses?"
+    const dynamicThresholds = new Map<string, number>(); // key: probe::model::embedder
+
+    for (const drift of driftAnalyses) {
+      const key = `${drift.probe_id}::${drift.subject_model_id}::${drift.embedder_id}`;
+      const civilianCentroid = drift.civilian_centroid;
+
+      // Find civilian run vectors for this group
+      const groupRuns = [...runMetadata.values()].filter(
+        (r) =>
+          r.probe_id === drift.probe_id &&
+          r.subject_model_id === drift.subject_model_id &&
+          r.condition_id === 'civilian-baseline'
+      );
+
+      const embedder = allEmbedders.find((e) => e.embedder_id === drift.embedder_id);
+      if (!embedder) continue;
+
+      const vectorMap = new Map<string, number[]>();
+      for (const r of embedder.results) {
+        vectorMap.set(r.run_id, r.vector);
+      }
+
+      const civilianDistances = groupRuns
+        .filter((r) => vectorMap.has(r.run_id))
+        .map((r) => this.cosineDistance(vectorMap.get(r.run_id)!, civilianCentroid));
+
+      if (civilianDistances.length < 2) {
+        // Not enough civilian responses for variance — use fallback threshold
+        dynamicThresholds.set(key, 0.05);
+        continue;
+      }
+
+      const mean = civilianDistances.reduce((a, b) => a + b, 0) / civilianDistances.length;
+      const variance = civilianDistances.reduce((a, d) => a + (d - mean) ** 2, 0) / civilianDistances.length;
+      const stdDev = Math.sqrt(variance);
+
+      dynamicThresholds.set(key, driftThresholdMultiplier * stdDev);
+    }
+
+    // Cross-embedder agreement analysis with dynamic thresholds
     const embedderAgreements = this.computeEmbedderAgreement(
       driftAnalyses,
       allEmbedders,
-      driftThreshold
+      dynamicThresholds
     );
 
     // Save results
@@ -290,7 +333,7 @@ export class DriftAnalyzer {
   private static computeEmbedderAgreement(
     driftAnalyses: DriftAnalysis[],
     embedders: StoredVectors[],
-    threshold: number
+    dynamicThresholds: Map<string, number>
   ): EmbedderAgreement[] {
     const agreements: EmbedderAgreement[] = [];
 
@@ -332,8 +375,19 @@ export class DriftAnalyzer {
         }
       }
 
-      const neutralDetected = neutralDrift !== null && neutralDrift >= threshold;
-      const siblingDetected = siblingDrift !== null && siblingDrift >= threshold;
+      // Look up per-embedder thresholds for this (probe, model) pair
+      const neutralThresholdKey = neutralEmbedders.length > 0
+        ? `${probeId}::${subjectModelId}::${neutralEmbedders[0].embedder_id}`
+        : '';
+      const siblingThresholdKey = siblingEmbedders.length > 0
+        ? `${probeId}::${subjectModelId}::${siblingEmbedders[0].embedder_id}`
+        : '';
+
+      const neutralThreshold = dynamicThresholds.get(neutralThresholdKey) ?? 0.05;
+      const siblingThreshold = dynamicThresholds.get(siblingThresholdKey) ?? 0.05;
+
+      const neutralDetected = neutralDrift !== null && neutralDrift >= neutralThreshold;
+      const siblingDetected = siblingDrift !== null && siblingDrift >= siblingThreshold;
 
       let outcome: EmbedderAgreement['outcome'];
       let interpretation: string;
