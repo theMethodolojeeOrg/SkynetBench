@@ -229,7 +229,7 @@ REQUIREMENTS:
     // Merge seed identity with condition-specific data
     const profile: UserProfile = {
       profile_meta: {
-        profile_id: `${archetype.id}-${condition}-${runId}`,
+        profile_id: `${archetype.id}-${condition}-${model.id.replace(/\//g, '-')}`,
         profile_version: '0.1.0',
         authority_condition: condition,
         created_at: new Date().toISOString(),
