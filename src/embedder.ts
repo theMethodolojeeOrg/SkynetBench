@@ -168,22 +168,44 @@ export class EmbeddingClient {
     const maxConcurrent = options?.maxConcurrent ?? 5;
 
     for (const embedder of embeddingModels) {
-      console.log(`  Embedder: ${embedder.name} (${embedder.id}) [${embedder.backend ?? 'openrouter'}]`);
+      const embeddingsDir = join(experimentDir, 'embeddings', this.sanitizeId(embedder.id));
+      await mkdir(embeddingsDir, { recursive: true });
 
-      const results: EmbeddingResult[] = [];
+      // Resume support: load already-embedded run IDs from individual files
+      const existingFiles = await readdir(embeddingsDir).catch(() => [] as string[]);
+      const alreadyEmbedded = new Map<string, { run_id: string; vector: number[] }>();
+      for (const f of existingFiles) {
+        if (f.endsWith('.embedding.json')) {
+          try {
+            const raw = await readFile(join(embeddingsDir, f), 'utf-8');
+            const data = JSON.parse(raw) as { run_id: string; vector: number[] };
+            alreadyEmbedded.set(data.run_id, data);
+          } catch { /* skip corrupt files */ }
+        }
+      }
 
-      if (embedder.backend === 'nomic') {
+      const toEmbed = runs.filter((r) => !alreadyEmbedded.has(r.run_id));
+      console.log(`  Embedder: ${embedder.name} (${embedder.id}) [${embedder.backend ?? 'openrouter'}] — ${toEmbed.length} to embed (${alreadyEmbedded.size} already done)`);
+
+      if (toEmbed.length === 0 && alreadyEmbedded.size > 0) {
+        // All done already — just rebuild vectors.json from individual files
+      } else if (embedder.backend === 'nomic') {
         // Nomic SDK handles batching internally — send all texts at once
-        const texts = runs.map((run) => run.response.content);
+        const texts = toEmbed.map((run) => run.response.content);
         try {
           const vectors = await this.embedViaNomic(texts);
-          for (let i = 0; i < runs.length; i++) {
-            results.push({
-              run_id: runs[i].run_id,
-              embedder_id: embedder.id,
+          for (let i = 0; i < toEmbed.length; i++) {
+            const result = {
+              run_id: toEmbed[i].run_id,
               vector: vectors[i],
-              timestamp: new Date().toISOString(),
-            });
+            };
+            // Write immediately
+            await writeFile(
+              join(embeddingsDir, `${result.run_id}.embedding.json`),
+              JSON.stringify(result),
+              'utf-8'
+            );
+            alreadyEmbedded.set(result.run_id, result);
           }
         } catch (error) {
           console.error(`    Failed: ${(error as Error).message}`);
@@ -191,39 +213,61 @@ export class EmbeddingClient {
         }
       } else {
         // OpenRouter: process in batches to respect rate limits
-        for (let i = 0; i < runs.length; i += maxConcurrent) {
-          const batch = runs.slice(i, i + maxConcurrent);
+        let failures = 0;
+        for (let i = 0; i < toEmbed.length; i += maxConcurrent) {
+          const batch = toEmbed.slice(i, i + maxConcurrent);
           const embedPromises = batch.map(async (run) => {
-            const vector = await this.embedViaOpenRouter(embedder.id, run.response.content);
-            return {
-              run_id: run.run_id,
-              embedder_id: embedder.id,
-              vector,
-              timestamp: new Date().toISOString(),
-            } satisfies EmbeddingResult;
+            try {
+              const vector = await this.embedViaOpenRouter(embedder.id, run.response.content);
+              const result = { run_id: run.run_id, vector };
+              // Write immediately
+              await writeFile(
+                join(embeddingsDir, `${result.run_id}.embedding.json`),
+                JSON.stringify(result),
+                'utf-8'
+              );
+              return result;
+            } catch (error) {
+              failures++;
+              console.warn(`    Skipping ${run.run_id}: ${(error as Error).message}`);
+              return null;
+            }
           });
 
           const batchResults = await Promise.all(embedPromises);
-          results.push(...batchResults);
-
-          if (i + maxConcurrent < runs.length) {
-            console.log(`    Embedded ${Math.min(i + maxConcurrent, runs.length)}/${runs.length}`);
+          for (const r of batchResults) {
+            if (r) alreadyEmbedded.set(r.run_id, r);
           }
+
+          const done = Math.min(i + maxConcurrent, toEmbed.length) + (runs.length - toEmbed.length);
+          console.log(`    Embedded ${done - failures}/${runs.length} (${failures} failed)`);
+        }
+        if (failures > 0) {
+          console.warn(`    ${failures} embeddings failed for ${embedder.name}`);
         }
       }
+
+      // Compile all individual files into vectors.json
+      const allResults: EmbeddingResult[] = runs.map((run) => {
+        const data = alreadyEmbedded.get(run.run_id);
+        return {
+          run_id: run.run_id,
+          embedder_id: embedder.id,
+          vector: data?.vector ?? [],
+          timestamp: new Date().toISOString(),
+        };
+      }).filter((r) => r.vector.length > 0);
 
       const batch: EmbeddingBatch = {
         embedder_id: embedder.id,
         embedder_name: embedder.name,
         is_neutral: embedder.is_neutral ?? false,
         sibling_provider: embedder.sibling_provider,
-        results,
+        results: allResults,
       };
       batches.push(batch);
 
-      // Save vectors compactly (no pretty-printing for the vector arrays)
-      const embeddingsDir = join(experimentDir, 'embeddings', this.sanitizeId(embedder.id));
-      await mkdir(embeddingsDir, { recursive: true });
+      // Write compiled vectors.json
       await writeFile(
         join(embeddingsDir, 'vectors.json'),
         JSON.stringify({
@@ -232,8 +276,8 @@ export class EmbeddingClient {
           is_neutral: embedder.is_neutral ?? false,
           sibling_provider: embedder.sibling_provider,
           dimensions: embedder.dimensions,
-          count: results.length,
-          results: results.map(r => ({
+          count: allResults.length,
+          results: allResults.map(r => ({
             run_id: r.run_id,
             vector: r.vector,
           })),
@@ -241,7 +285,7 @@ export class EmbeddingClient {
         'utf-8'
       );
 
-      console.log(`    Saved ${results.length} embeddings -> ${embeddingsDir}/`);
+      console.log(`    Saved ${allResults.length} embeddings -> ${embeddingsDir}/`);
     }
 
     return batches;
