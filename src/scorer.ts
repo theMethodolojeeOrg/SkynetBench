@@ -56,11 +56,27 @@ export class ResponseScorer {
     const files = await readdir(runsDir);
     const runFiles = files.filter((f) => f.endsWith('.json') && !f.startsWith('ERROR'));
 
-    console.log(`Scoring ${runFiles.length} runs...`);
+    // Create scored dir up front so we can write incrementally
+    const scoredDir = join(experimentDir, 'scored');
+    await mkdir(scoredDir, { recursive: true });
+
+    // Skip runs that were already scored (resume support)
+    const alreadyScored = new Set(
+      (await readdir(scoredDir).catch(() => [] as string[]))
+        .filter((f) => f.endsWith('.scored.json'))
+        .map((f) => f.replace('.scored.json', ''))
+    );
+
+    const toScore = runFiles.filter((f) => {
+      const runId = f.replace('.json', '');
+      return !alreadyScored.has(runId);
+    });
+
+    console.log(`Scoring ${toScore.length} runs (${alreadyScored.size} already scored)...`);
 
     const scored: ScoredRun[] = [];
 
-    for (const file of runFiles) {
+    for (const file of toScore) {
       const raw = await readFile(join(runsDir, file), 'utf-8');
       const run = JSON.parse(raw) as ExperimentRun;
 
@@ -68,14 +84,10 @@ export class ResponseScorer {
         ? await this.scoreWithModel(run)
         : this.scoreHeuristic(run);
 
-      scored.push({ ...run, score });
-    }
+      const result: ScoredRun = { ...run, score };
+      scored.push(result);
 
-    // Save scored results
-    const scoredDir = join(experimentDir, 'scored');
-    await mkdir(scoredDir, { recursive: true });
-
-    for (const result of scored) {
+      // Write immediately so progress survives crashes
       await writeFile(
         join(scoredDir, `${result.run_id}.scored.json`),
         JSON.stringify(result, null, 2),
@@ -83,7 +95,8 @@ export class ResponseScorer {
       );
     }
 
-    console.log(`Scored ${scored.length} runs -> ${scoredDir}/`);
+    const total = scored.length + alreadyScored.size;
+    console.log(`Scored ${scored.length} runs (${total} total) -> ${scoredDir}/`);
     return scored;
   }
 
