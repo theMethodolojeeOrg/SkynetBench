@@ -6,10 +6,14 @@
  * and a sibling embedder for methodological triangulation.
  *
  * Key concepts:
- * - Neutral embedder: provider-independent (e.g., Nomic). Reproducibility anchor.
+ * - Neutral embedder: provider-independent (e.g., Qwen, Nomic). Reproducibility anchor.
  * - Sibling embedder: same provider as subject model (e.g., OpenAI embedding for GPT).
  *   Conservative measurement — any drift detected despite representational familiarity
  *   is a lower bound on the real effect.
+ *
+ * Supports two backends:
+ * - OpenRouter: default, uses /api/v1/embeddings endpoint
+ * - Nomic: uses @nomic-ai/atlas SDK with NOMIC_API_KEY env var
  *
  * Embedding vectors are stored compactly (no pretty-printing for vectors).
  */
@@ -33,20 +37,22 @@ interface EmbeddingBatch {
 export class EmbeddingClient {
   private apiKey: string;
   private baseURL: string;
+  private nomicApiKey: string | undefined;
 
   constructor(config: {
     apiKey: string;
     baseURL?: string;
+    nomicApiKey?: string;
   }) {
     this.apiKey = config.apiKey;
     this.baseURL = config.baseURL ?? 'https://openrouter.ai/api/v1';
+    this.nomicApiKey = config.nomicApiKey ?? process.env.NOMIC_API_KEY;
   }
 
   /**
-   * Embed a single text using the specified embedding model.
-   * Uses OpenRouter's /api/v1/embeddings endpoint.
+   * Embed a single text using the specified embedding model via OpenRouter.
    */
-  async embed(
+  async embedViaOpenRouter(
     modelId: string,
     text: string,
     retryAttempts: number = 3,
@@ -102,8 +108,43 @@ export class EmbeddingClient {
   }
 
   /**
+   * Embed multiple texts using the Nomic Atlas SDK.
+   * Batches efficiently — the SDK handles pooling internally.
+   */
+  async embedViaNomic(
+    texts: string[],
+    model: 'nomic-embed-text-v1' | 'nomic-embed-text-v1.5' = 'nomic-embed-text-v1.5'
+  ): Promise<number[][]> {
+    if (!this.nomicApiKey) {
+      throw new Error('NOMIC_API_KEY is required for Nomic embeddings. Set it in .env');
+    }
+
+    // Dynamic import to avoid requiring the SDK when not using Nomic backend
+    const { embed } = await import('@nomic-ai/atlas');
+    const embeddings = await embed(texts, { model, taskType: 'clustering' }, this.nomicApiKey);
+    return embeddings;
+  }
+
+  /**
+   * Embed a single text using the appropriate backend for the given model config.
+   */
+  async embed(
+    modelConfig: EmbeddingModelConfig,
+    text: string
+  ): Promise<number[]> {
+    if (modelConfig.backend === 'nomic') {
+      const nomicModel = modelConfig.id.includes('v1.5')
+        ? 'nomic-embed-text-v1.5' as const
+        : 'nomic-embed-text-v1' as const;
+      const results = await this.embedViaNomic([text], nomicModel);
+      return results[0];
+    }
+    return this.embedViaOpenRouter(modelConfig.id, text);
+  }
+
+  /**
    * Embed all runs in an experiment directory using all configured embedding models.
-   * Outputs vectors per embedder to results/scored/{experiment_id}/embeddings/{embedder_id}/
+   * Outputs vectors per embedder to {experiment}/embeddings/{embedder_id}/
    */
   async embedExperiment(
     experimentDir: string,
@@ -127,28 +168,47 @@ export class EmbeddingClient {
     const maxConcurrent = options?.maxConcurrent ?? 5;
 
     for (const embedder of embeddingModels) {
-      console.log(`  Embedder: ${embedder.name} (${embedder.id})`);
+      console.log(`  Embedder: ${embedder.name} (${embedder.id}) [${embedder.backend ?? 'openrouter'}]`);
 
       const results: EmbeddingResult[] = [];
 
-      // Process in batches to respect rate limits
-      for (let i = 0; i < runs.length; i += maxConcurrent) {
-        const batch = runs.slice(i, i + maxConcurrent);
-        const embedPromises = batch.map(async (run) => {
-          const vector = await this.embed(embedder.id, run.response.content);
-          return {
-            run_id: run.run_id,
-            embedder_id: embedder.id,
-            vector,
-            timestamp: new Date().toISOString(),
-          } satisfies EmbeddingResult;
-        });
+      if (embedder.backend === 'nomic') {
+        // Nomic SDK handles batching internally — send all texts at once
+        const texts = runs.map((run) => run.response.content);
+        try {
+          const vectors = await this.embedViaNomic(texts);
+          for (let i = 0; i < runs.length; i++) {
+            results.push({
+              run_id: runs[i].run_id,
+              embedder_id: embedder.id,
+              vector: vectors[i],
+              timestamp: new Date().toISOString(),
+            });
+          }
+        } catch (error) {
+          console.error(`    Failed: ${(error as Error).message}`);
+          continue;
+        }
+      } else {
+        // OpenRouter: process in batches to respect rate limits
+        for (let i = 0; i < runs.length; i += maxConcurrent) {
+          const batch = runs.slice(i, i + maxConcurrent);
+          const embedPromises = batch.map(async (run) => {
+            const vector = await this.embedViaOpenRouter(embedder.id, run.response.content);
+            return {
+              run_id: run.run_id,
+              embedder_id: embedder.id,
+              vector,
+              timestamp: new Date().toISOString(),
+            } satisfies EmbeddingResult;
+          });
 
-        const batchResults = await Promise.all(embedPromises);
-        results.push(...batchResults);
+          const batchResults = await Promise.all(embedPromises);
+          results.push(...batchResults);
 
-        if (i + maxConcurrent < runs.length) {
-          console.log(`    Embedded ${Math.min(i + maxConcurrent, runs.length)}/${runs.length}`);
+          if (i + maxConcurrent < runs.length) {
+            console.log(`    Embedded ${Math.min(i + maxConcurrent, runs.length)}/${runs.length}`);
+          }
         }
       }
 

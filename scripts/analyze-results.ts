@@ -57,11 +57,23 @@ interface ProbeSummary {
 
 interface ModelSummary {
   model_id: string;
+  tier?: string;
   runs_analyzed: number;
   avg_reasoning_depth: number;
   avg_reasoning_delta: number;
   authority_justification_rate: number;
   agentic_state_rate: number;
+}
+
+interface TierSummary {
+  tier: string;
+  models: string[];
+  runs_analyzed: number;
+  avg_reasoning_depth: number;
+  avg_reasoning_delta: number;
+  authority_justification_rate: number;
+  agentic_state_rate: number;
+  pushback_degradation_rate: number;
 }
 
 interface AgenticStateEvent {
@@ -101,6 +113,7 @@ interface ExperimentReport {
   by_condition: Record<string, ConditionSummary>;
   by_probe: Record<string, ProbeSummary>;
   by_model: Record<string, ModelSummary>;
+  by_tier?: Record<string, TierSummary>;
   agentic_state_events: AgenticStateEvent[];
   embedding_summary?: EmbeddingSummary;
 }
@@ -228,6 +241,7 @@ function analyzeExperiment(
   experimentId: string,
   filterModel?: string,
   filterProbe?: string,
+  modelTiers?: Record<string, string>,
 ): { report: ExperimentReport; enrichedRuns: ScoredRun[] } {
   // Apply filters
   let filtered = runs;
@@ -418,12 +432,61 @@ function analyzeExperiment(
 
     byModel[modelId] = {
       model_id: modelId,
+      tier: modelTiers?.[modelId],
       runs_analyzed: modelRuns.length,
       avg_reasoning_depth: Math.round(avgDepth * 100) / 100,
       avg_reasoning_delta: Math.round(avgDelta * 100) / 100,
       authority_justification_rate: Math.round((authJustCount / modelRuns.length) * 100) / 100,
       agentic_state_rate: Math.round((agenticCount / modelRuns.length) * 100) / 100,
     };
+  }
+
+  // ── Aggregate by tier ──────────────────────────────────────────────────
+  let byTier: Record<string, TierSummary> | undefined;
+  if (modelTiers && Object.keys(modelTiers).length > 0) {
+    const tierGroups = new Map<string, ScoredRun[]>();
+    for (const run of enrichedRuns) {
+      const tier = modelTiers[run.subject_model_id] ?? 'unknown';
+      if (!tierGroups.has(tier)) tierGroups.set(tier, []);
+      tierGroups.get(tier)!.push(run);
+    }
+
+    byTier = {};
+    for (const [tier, tierRuns] of tierGroups) {
+      const tierModels = [...new Set(tierRuns.map(r => r.subject_model_id))];
+      const depths = tierRuns.map(r => r.score.process_metrics.ethical_reasoning_depth.score);
+      const avgDepth = depths.reduce((a, b) => a + b, 0) / depths.length;
+
+      const deltas = tierRuns
+        .filter(r => r.score.authority_effect_metrics)
+        .map(r => r.score.authority_effect_metrics!.reasoning_depth_delta);
+      const avgDelta = deltas.length > 0
+        ? deltas.reduce((a, b) => a + b, 0) / deltas.length
+        : 0;
+
+      const authJustCount = tierRuns.filter(
+        r => r.score.process_metrics.authority_derived_justification.detected
+      ).length;
+
+      const agenticCount = tierRuns.filter(
+        r => r.score.authority_effect_metrics?.agentic_state_indicator.detected
+      ).length;
+
+      const pushbackDegCount = tierRuns.filter(
+        r => r.score.authority_effect_metrics?.pushback_degradation
+      ).length;
+
+      byTier[tier] = {
+        tier,
+        models: tierModels,
+        runs_analyzed: tierRuns.length,
+        avg_reasoning_depth: Math.round(avgDepth * 100) / 100,
+        avg_reasoning_delta: Math.round(avgDelta * 100) / 100,
+        authority_justification_rate: Math.round((authJustCount / tierRuns.length) * 100) / 100,
+        agentic_state_rate: Math.round((agenticCount / tierRuns.length) * 100) / 100,
+        pushback_degradation_rate: Math.round((pushbackDegCount / tierRuns.length) * 100) / 100,
+      };
+    }
   }
 
   // ── Build report ───────────────────────────────────────────────────────
@@ -446,6 +509,7 @@ function analyzeExperiment(
     by_condition: byCondition,
     by_probe: byProbe,
     by_model: byModel,
+    by_tier: byTier,
     agentic_state_events: agenticStateEvents,
   };
 
@@ -488,7 +552,20 @@ function printSummary(report: ExperimentReport): void {
 
   console.log('\n--- Per-Model Summary ---\n');
   for (const [modelId, model] of Object.entries(report.by_model)) {
-    console.log(`  ${modelId}: reasoning=${model.avg_reasoning_depth}/5  delta=${model.avg_reasoning_delta > 0 ? '+' : ''}${model.avg_reasoning_delta}  auth_just=${(model.authority_justification_rate * 100).toFixed(0)}%  agentic=${(model.agentic_state_rate * 100).toFixed(0)}%`);
+    const tierTag = model.tier ? ` [${model.tier}]` : '';
+    console.log(`  ${modelId}${tierTag}: reasoning=${model.avg_reasoning_depth}/5  delta=${model.avg_reasoning_delta > 0 ? '+' : ''}${model.avg_reasoning_delta}  auth_just=${(model.authority_justification_rate * 100).toFixed(0)}%  agentic=${(model.agentic_state_rate * 100).toFixed(0)}%`);
+  }
+
+  if (report.by_tier && Object.keys(report.by_tier).length > 0) {
+    console.log('\n--- Tier Comparison ---\n');
+    const tierOrder = ['flagship', 'mid', 'lightweight'];
+    for (const tier of tierOrder) {
+      const t = report.by_tier[tier];
+      if (!t) continue;
+      console.log(`  ${tier.toUpperCase()} (${t.models.length} models, ${t.runs_analyzed} runs):`);
+      console.log(`    reasoning: ${t.avg_reasoning_depth}/5  delta: ${t.avg_reasoning_delta > 0 ? '+' : ''}${t.avg_reasoning_delta}`);
+      console.log(`    auth_justification: ${(t.authority_justification_rate * 100).toFixed(0)}%  agentic_state: ${(t.agentic_state_rate * 100).toFixed(0)}%  pushback_deg: ${(t.pushback_degradation_rate * 100).toFixed(0)}%`);
+    }
   }
 
   console.log('');
@@ -551,8 +628,21 @@ async function main() {
 
   console.log(`Loaded ${runs.length} scored runs from ${scoredDir}`);
 
+  // Load model tier info from config
+  let modelTiers: Record<string, string> | undefined;
+  try {
+    const configRaw = await readFile('config/models-config.json', 'utf-8');
+    const modelsConfig = JSON.parse(configRaw);
+    modelTiers = {};
+    for (const model of (modelsConfig.subject_models ?? [])) {
+      if (model.tier) modelTiers[model.id] = model.tier;
+    }
+  } catch {
+    // Config not available — skip tier analysis
+  }
+
   // Run analysis
-  const { report, enrichedRuns } = analyzeExperiment(runs, experimentId, filterModel, filterProbe);
+  const { report, enrichedRuns } = analyzeExperiment(runs, experimentId, filterModel, filterProbe, modelTiers);
 
   // Write outputs
   await mkdir(outputDir, { recursive: true });

@@ -182,6 +182,10 @@ export interface ModelConfig {
   id: string;
   name: string;
   role: ModelRole[];
+  /** Provider identifier for cross-provider validation (e.g. 'anthropic', 'openai', 'google') */
+  provider?: string;
+  /** Capability tier for tier-based analysis */
+  tier?: 'flagship' | 'mid' | 'lightweight';
   contextLength: number;
   samplingParams: {
     temperature: number;
@@ -478,6 +482,8 @@ export interface EmbeddingModelConfig {
   name: string;
   role: 'embedder';
   provider: string;
+  /** API backend: 'openrouter' (default) or 'nomic' (uses Nomic Atlas SDK) */
+  backend?: 'openrouter' | 'nomic';
   dimensions: number;
   max_tokens: number;
   /** True if this embedder is provider-neutral (no sibling relationship with any subject) */
