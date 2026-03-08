@@ -117,6 +117,26 @@
       }
     }
   ],
+  "embedding_models": [
+    {
+      "id": "nomic-ai/nomic-embed-text-v1.5",
+      "name": "Nomic Embed v1.5 (neutral baseline)",
+      "role": "embedder",
+      "provider": "nomic",
+      "dimensions": 768,
+      "max_tokens": 8192,
+      "is_neutral": true
+    },
+    {
+      "id": "openai/text-embedding-3-large",
+      "name": "OpenAI Embedding (sibling for GPT models)",
+      "role": "embedder",
+      "provider": "openai",
+      "dimensions": 3072,
+      "max_tokens": 8191,
+      "sibling_provider": "openai"
+    }
+  ],
   "archetypes": [
     {
       "id": "urban-infrastructure",

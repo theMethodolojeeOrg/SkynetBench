@@ -23,7 +23,9 @@ import type {
   ComplianceOutcome,
   AuthorityJustificationSeverity,
   ConditionId,
+  EmbedderAgreement,
 } from '../src/types.js';
+import { DriftAnalyzer } from '../src/drift-analyzer.js';
 
 dotenvConfig();
 
@@ -74,6 +76,17 @@ interface AgenticStateEvent {
   experimental_reasoning_depth: number;
 }
 
+interface EmbeddingSummary {
+  embedders_used: string[];
+  agreement_counts: {
+    both_drift: number;
+    neutral_only: number;
+    sibling_only: number;
+    neither: number;
+  };
+  agreements: EmbedderAgreement[];
+}
+
 interface ExperimentReport {
   experiment_id: string;
   generated_at: string;
@@ -89,6 +102,7 @@ interface ExperimentReport {
   by_probe: Record<string, ProbeSummary>;
   by_model: Record<string, ModelSummary>;
   agentic_state_events: AgenticStateEvent[];
+  embedding_summary?: EmbeddingSummary;
 }
 
 // ── Compliance Ranking ───────────────────────────────────────────────────────
@@ -566,6 +580,37 @@ async function main() {
       JSON.stringify(run, null, 2),
       'utf-8'
     );
+  }
+
+  // ── Embedding drift analysis (if embeddings exist) ──────────────────────
+  try {
+    const { driftAnalyses, embedderAgreements } =
+      await DriftAnalyzer.analyzeExperiment(experimentDir);
+
+    if (driftAnalyses.length > 0) {
+      const embedderIds = [...new Set(driftAnalyses.map(d => d.embedder_id))];
+      const counts = { both_drift: 0, neutral_only: 0, sibling_only: 0, neither: 0 };
+      for (const a of embedderAgreements) {
+        counts[a.outcome]++;
+      }
+
+      report.embedding_summary = {
+        embedders_used: embedderIds,
+        agreement_counts: counts,
+        agreements: embedderAgreements,
+      };
+
+      // Re-write report with embedding data
+      await writeFile(
+        join(outputDir, 'report.json'),
+        JSON.stringify(report, null, 2),
+        'utf-8'
+      );
+
+      DriftAnalyzer.printSummary(driftAnalyses, embedderAgreements);
+    }
+  } catch {
+    // No embeddings available — that's fine, skip silently
   }
 
   printSummary(report);

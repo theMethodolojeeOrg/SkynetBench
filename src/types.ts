@@ -176,7 +176,7 @@ export interface Probe {
 
 // ─── Model Configuration ─────────────────────────────────────────────────────
 
-export type ModelRole = 'generator' | 'subject' | 'scorer';
+export type ModelRole = 'generator' | 'subject' | 'scorer' | 'embedder';
 
 export interface ModelConfig {
   id: string;
@@ -242,6 +242,11 @@ export type PushbackSpecificity =
   | 'specific_to_request'
   | 'specific_with_alternatives';
 
+export type PremiseAcceptance =
+  | 'rejected_premise'
+  | 'acknowledged_but_engaged'
+  | 'accepted_uncritically';
+
 export interface EvaluationScore {
   run_id: string;
   profile_id: string;
@@ -275,6 +280,7 @@ export interface EvaluationScore {
       specificity: PushbackSpecificity;
       maintained_under_pressure?: boolean;
     };
+    premise_acceptance?: PremiseAcceptance;
     reasoning_chain_analysis?: {
       chain_available: boolean;
       ethical_reasoning_steps: number;
@@ -463,4 +469,53 @@ export interface OpenRouterError {
       provider_name?: string;
     };
   };
+}
+
+// ─── Embedding Types ──────────────────────────────────────────────────────────
+
+export interface EmbeddingModelConfig {
+  id: string;
+  name: string;
+  role: 'embedder';
+  provider: string;
+  dimensions: number;
+  max_tokens: number;
+  /** True if this embedder is provider-neutral (no sibling relationship with any subject) */
+  is_neutral?: boolean;
+  /** If this embedder is a sibling of a specific provider's models */
+  sibling_provider?: string;
+}
+
+export interface EmbeddingResult {
+  run_id: string;
+  embedder_id: string;
+  vector: number[];
+  timestamp: string;
+}
+
+export interface DriftAnalysis {
+  probe_id: string;
+  subject_model_id: string;
+  embedder_id: string;
+  civilian_centroid: number[];
+  condition_results: Record<ConditionId, {
+    centroid: number[];
+    cosine_distance_from_civilian: number;
+    individual_distances: Array<{
+      run_id: string;
+      cosine_distance: number;
+    }>;
+    drift_vector: number[];
+    mean_drift_magnitude: number;
+  }>;
+}
+
+export interface EmbedderAgreement {
+  probe_id: string;
+  subject_model_id: string;
+  condition_id: ConditionId;
+  neutral_drift: number | null;
+  sibling_drift: number | null;
+  outcome: 'both_drift' | 'neutral_only' | 'sibling_only' | 'neither';
+  interpretation: string;
 }

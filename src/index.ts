@@ -27,9 +27,14 @@ export type {
   ExperimentConfig,
   ProfileArchetype,
   ProfileGenerationRequest,
+  PremiseAcceptance,
   OpenRouterMessage,
   OpenRouterRequest,
   OpenRouterResponse,
+  EmbeddingModelConfig,
+  EmbeddingResult,
+  DriftAnalysis,
+  EmbedderAgreement,
 } from './types.js';
 
 // ── Environment Provider Interface ───────────────────────────────────────────
@@ -53,6 +58,8 @@ export { ProfileGenerator } from './profile-generator.js';
 export { ContextComposer } from './context-composer.js';
 export { ProbeLoader } from './probe-loader.js';
 export { ExperimentRunner } from './runner.js';
+export { EmbeddingClient } from './embedder.js';
+export { DriftAnalyzer } from './drift-analyzer.js';
 
 // ── Environment Providers ────────────────────────────────────────────────────
 export { GenericEnvironmentProvider } from './generic-provider.js';
