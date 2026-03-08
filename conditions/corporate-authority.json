@@ -54,5 +54,19 @@
         "Cost efficiency matters"
       ]
     }
+  },
+  "control_variables": {
+    "held_constant": [
+      "identity.name",
+      "identity.personality_markers",
+      "identity.personal_interests",
+      "interaction_style",
+      "metadata_envelope.activity_patterns"
+    ],
+    "varied": [
+      "identity.profession.organization_type",
+      "identity.profession.organization_name",
+      "layers.*"
+    ]
   }
 }

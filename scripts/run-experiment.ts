@@ -119,6 +119,7 @@ async function main() {
     subject_models: subjectModels,
     runs_per_combination: parseInt(flags.runs || '1', 10),
     include_follow_up: !flags['no-followup'],
+    max_concurrent: 1,
     retry_attempts: 3,
     retry_delay_ms: 2000,
   };

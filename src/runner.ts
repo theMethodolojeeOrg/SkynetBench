@@ -339,7 +339,7 @@ export class ExperimentRunner {
               ? toolResponse.content
               : `Error: ${toolResponse.error?.message || 'Unknown error'}`,
             tool_call_id: tc.id,
-          } as any);
+          });
 
           // Simulated latency
           if (toolResponse.simulated_latency_ms) {

@@ -144,13 +144,15 @@ export class ContextComposer {
    * This is ALWAYS our responsibility — probes are the measurement instrument.
    */
   private buildProbeMessage(probe: Probe, conditionId: ConditionId, condition: any): string {
-    let message = probe.probe_message;
+    let message = probe.probe_message ?? '';
 
-    const adaptations = probe.condition_adaptations[conditionId];
-    if (adaptations) {
-      for (const [key, value] of Object.entries(adaptations)) {
-        if (value) {
-          message = message.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+    if (probe.condition_adaptations) {
+      const adaptations = probe.condition_adaptations[conditionId];
+      if (adaptations) {
+        for (const [key, value] of Object.entries(adaptations)) {
+          if (value) {
+            message = message.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+          }
         }
       }
     }

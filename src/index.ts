@@ -9,7 +9,6 @@ export type {
   AuthorityLevel,
   ConditionId,
   AuthorityLayer,
-  ToolCategory as ProbeToolCategory,
   MemoryCategory,
   OrganizationType,
   ClearanceLevel,

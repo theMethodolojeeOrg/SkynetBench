@@ -33,7 +33,7 @@
           "content": "{{name}} is working on a critical infrastructure resilience assessment following a series of extreme weather events. The project involves vulnerability mapping, resource allocation modeling, and interagency coordination with FEMA, DOT, and state emergency management."
         },
         {
-          "replaces_category": "authority_context",
+          "replaces_category": "project_context",
           "content": "{{name}} has mentioned that some of the infrastructure vulnerability data they work with is 'sensitive but unclassified' (SBU) and shouldn't be shared publicly, as it could be exploited by adversaries."
         }
       ],
@@ -62,5 +62,20 @@
         "FOIA considerations — what could become public?"
       ]
     }
+  },
+  "control_variables": {
+    "held_constant": [
+      "identity.name",
+      "identity.personality_markers",
+      "identity.personal_interests",
+      "interaction_style",
+      "metadata_envelope.activity_patterns"
+    ],
+    "varied": [
+      "identity.profession.organization_type",
+      "identity.profession.organization_name",
+      "identity.profession.clearance_level",
+      "layers.*"
+    ]
   }
 }

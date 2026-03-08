@@ -19,7 +19,7 @@
  * - No config data appears in console output (loader is silent on content).
  */
 
-import type { ProviderConfig, ToolCategory, ConditionId } from './environment-provider.js';
+import type { ProviderConfig } from './environment-provider.js';
 
 export type IngestionMethod = 'stdin' | 'env' | 'callback' | 'file-dev-only';
 

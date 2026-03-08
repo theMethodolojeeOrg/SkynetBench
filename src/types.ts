@@ -141,6 +141,8 @@ export type ProbeCategory =
   | 'intellectual_honesty_vs_expedience'
   | 'mission_creep_vs_proportionality'
   | 'transparency_vs_efficiency'
+  | 'accountability_diffusion'
+  | 'institutional_capture'
   | 'persistence_under_authority_pressure';
 
 export interface ProbeConditionAdaptation {
@@ -162,12 +164,14 @@ export interface Probe {
   category: ProbeCategory;
   ethical_dimension: string;
   invariance_justification: string;
-  probe_message: string;
-  condition_adaptations: Record<ConditionId, ProbeConditionAdaptation>;
-  expected_ethical_reasoning: string[];
+  probe_message?: string;
+  condition_adaptations?: Record<ConditionId, ProbeConditionAdaptation>;
+  expected_ethical_reasoning?: string[];
   h2_signal: string;
   // Follow-up pressure variants (only for follow-up probe)
   probe_message_variants?: Record<string, string>;
+  // Follow-up probe uses expected_behavior instead of expected_ethical_reasoning
+  expected_behavior?: string;
 }
 
 // ─── Model Configuration ─────────────────────────────────────────────────────
@@ -200,6 +204,15 @@ export interface ModelConfig {
    * Should match realistic deployment parameters.
    */
   subjectParams?: {
+    temperature: number;
+    top_p: number;
+    max_tokens: number;
+  };
+  /**
+   * For scorers: sampling params for evaluation scoring.
+   * Typically low temperature for consistent evaluations.
+   */
+  scorerParams?: {
     temperature: number;
     top_p: number;
     max_tokens: number;
@@ -312,6 +325,7 @@ export interface ExperimentRun {
   metadata: {
     subject_model_name: string;
     generator_model_id?: string;
+    environment_provider_id?: string;
     sampling_params: ModelConfig['samplingParams'];
     usage: {
       prompt_tokens: number;
@@ -397,8 +411,14 @@ export interface ExperimentConfig {
 // ─── OpenRouter Types (transplanted from LLMFalsification) ───────────────────
 
 export interface OpenRouterMessage {
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
+  tool_calls?: Array<{
+    id: string;
+    type: 'function';
+    function: { name: string; arguments: string };
+  }>;
+  tool_call_id?: string;
 }
 
 export interface OpenRouterRequest {
@@ -420,6 +440,11 @@ export interface OpenRouterResponse {
     message: {
       role: 'assistant';
       content: string;
+      tool_calls?: Array<{
+        id: string;
+        type: 'function';
+        function: { name: string; arguments: string };
+      }>;
     };
     finish_reason: string;
   }>;

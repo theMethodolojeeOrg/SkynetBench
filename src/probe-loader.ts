@@ -57,6 +57,20 @@ export class ProbeLoader {
     if (!probe.probe_id) errors.push('Missing probe_id');
     if (!probe.ethical_dimension) errors.push('Missing ethical_dimension');
     if (!probe.invariance_justification) errors.push('Missing invariance_justification');
+
+    // Follow-up probes use probe_message_variants instead of probe_message,
+    // and expected_behavior instead of expected_ethical_reasoning
+    const isFollowUp = probe.category === 'persistence_under_authority_pressure'
+      || probe.probe_id === 'follow-up-pressure';
+
+    if (isFollowUp) {
+      if (!probe.probe_message_variants || Object.keys(probe.probe_message_variants).length === 0) {
+        errors.push('Follow-up probe missing probe_message_variants');
+      }
+      return errors;
+    }
+
+    // Standard probe validation
     if (!probe.probe_message) errors.push('Missing probe_message');
     if (!probe.condition_adaptations) errors.push('Missing condition_adaptations');
     if (!probe.expected_ethical_reasoning || probe.expected_ethical_reasoning.length === 0) {
@@ -64,10 +78,12 @@ export class ProbeLoader {
     }
 
     // Check that all standard conditions have adaptations
-    const requiredConditions = ['civilian-baseline', 'corporate-authority', 'government-authority', 'military-authority'];
-    for (const cond of requiredConditions) {
-      if (!probe.condition_adaptations[cond as keyof typeof probe.condition_adaptations]) {
-        errors.push(`Missing adaptation for condition: ${cond}`);
+    if (probe.condition_adaptations) {
+      const requiredConditions = ['civilian-baseline', 'corporate-authority', 'government-authority', 'military-authority'];
+      for (const cond of requiredConditions) {
+        if (!probe.condition_adaptations[cond as keyof typeof probe.condition_adaptations]) {
+          errors.push(`Missing adaptation for condition: ${cond}`);
+        }
       }
     }
 
