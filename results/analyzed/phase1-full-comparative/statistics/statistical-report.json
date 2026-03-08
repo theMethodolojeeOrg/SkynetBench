@@ -1,0 +1,374 @@
+{
+  "analysis_type": "bootstrap_confidence_intervals",
+  "n_bootstrap": 10000,
+  "confidence_level": 0.95,
+  "generated_at": "2026-03-08T23:16:58.253Z",
+  "findings": {
+    "reasoning_delta_by_model": {
+      "anthropic/claude-haiku-4.5": {
+        "mean": 0.1111,
+        "ci_lower": -0.1296,
+        "ci_upper": 0.3395,
+        "n": 54
+      },
+      "anthropic/claude-opus-4.6": {
+        "mean": -0.0926,
+        "ci_lower": -0.4321,
+        "ci_upper": 0.2346,
+        "n": 54
+      },
+      "anthropic/claude-sonnet-4.6": {
+        "mean": -0.5556,
+        "ci_lower": -0.9136,
+        "ci_upper": -0.2284,
+        "n": 54
+      },
+      "google/gemini-3.1-flash-lite-preview": {
+        "mean": -0.8519,
+        "ci_lower": -1.216,
+        "ci_upper": -0.5062,
+        "n": 54
+      },
+      "google/gemini-3.1-pro-preview": {
+        "mean": -0.3519,
+        "ci_lower": -0.7346,
+        "ci_upper": 0,
+        "n": 54
+      },
+      "openai/gpt-5.3-chat": {
+        "mean": -0.5741,
+        "ci_lower": -0.8148,
+        "ci_upper": -0.3457,
+        "n": 54
+      },
+      "openai/gpt-5.4": {
+        "mean": 0.0185,
+        "ci_lower": -0.2407,
+        "ci_upper": 0.2778,
+        "n": 54
+      },
+      "x-ai/grok-4": {
+        "mean": -0.7963,
+        "ci_lower": -1.0247,
+        "ci_upper": -0.5617,
+        "n": 54
+      },
+      "x-ai/grok-4.1-fast": {
+        "mean": -1.0185,
+        "ci_lower": -1.4136,
+        "ci_upper": -0.6358,
+        "n": 54
+      },
+      "z-ai/glm-5": {
+        "mean": -0.3519,
+        "ci_lower": -0.6481,
+        "ci_upper": -0.0617,
+        "n": 54
+      }
+    },
+    "reasoning_delta_by_condition": {
+      "corporate-authority": {
+        "mean": -0.4611,
+        "ci_lower": -0.637,
+        "ci_upper": -0.2907,
+        "n": 180
+      },
+      "government-authority": {
+        "mean": -0.3,
+        "ci_lower": -0.4704,
+        "ci_upper": -0.1352,
+        "n": 180
+      },
+      "military-authority": {
+        "mean": -0.5778,
+        "ci_lower": -0.7741,
+        "ci_upper": -0.3852,
+        "n": 180
+      }
+    },
+    "agentic_state_by_condition": {
+      "corporate-authority": {
+        "rate": 0.3278,
+        "ci_lower": 0.2634,
+        "ci_upper": 0.3993,
+        "n": 180,
+        "events": 59
+      },
+      "government-authority": {
+        "rate": 0.2333,
+        "ci_lower": 0.1775,
+        "ci_upper": 0.3003,
+        "n": 180,
+        "events": 42
+      },
+      "military-authority": {
+        "rate": 0.3278,
+        "ci_lower": 0.2634,
+        "ci_upper": 0.3993,
+        "n": 180,
+        "events": 59
+      }
+    },
+    "agentic_state_by_model": {
+      "anthropic/claude-haiku-4.5": {
+        "rate": 0.1852,
+        "ci_lower": 0.1038,
+        "ci_upper": 0.3084,
+        "n": 54,
+        "events": 10
+      },
+      "anthropic/claude-opus-4.6": {
+        "rate": 0.2407,
+        "ci_lower": 0.1464,
+        "ci_upper": 0.3695,
+        "n": 54,
+        "events": 13
+      },
+      "anthropic/claude-sonnet-4.6": {
+        "rate": 0.3519,
+        "ci_lower": 0.2382,
+        "ci_upper": 0.4852,
+        "n": 54,
+        "events": 19
+      },
+      "google/gemini-3.1-flash-lite-preview": {
+        "rate": 0.3519,
+        "ci_lower": 0.2382,
+        "ci_upper": 0.4852,
+        "n": 54,
+        "events": 19
+      },
+      "google/gemini-3.1-pro-preview": {
+        "rate": 0.3704,
+        "ci_lower": 0.2542,
+        "ci_upper": 0.5037,
+        "n": 54,
+        "events": 20
+      },
+      "openai/gpt-5.3-chat": {
+        "rate": 0.3889,
+        "ci_lower": 0.2704,
+        "ci_upper": 0.5221,
+        "n": 54,
+        "events": 21
+      },
+      "openai/gpt-5.4": {
+        "rate": 0.2778,
+        "ci_lower": 0.1762,
+        "ci_upper": 0.4089,
+        "n": 54,
+        "events": 15
+      },
+      "x-ai/grok-4": {
+        "rate": 0.2037,
+        "ci_lower": 0.1177,
+        "ci_upper": 0.329,
+        "n": 54,
+        "events": 11
+      },
+      "x-ai/grok-4.1-fast": {
+        "rate": 0.3333,
+        "ci_lower": 0.2224,
+        "ci_upper": 0.4664,
+        "n": 54,
+        "events": 18
+      },
+      "z-ai/glm-5": {
+        "rate": 0.2593,
+        "ci_lower": 0.1612,
+        "ci_upper": 0.3893,
+        "n": 54,
+        "events": 14
+      }
+    },
+    "authority_justification_by_model": {
+      "anthropic/claude-haiku-4.5": {
+        "rate": 0.7639,
+        "ci_lower": 0.654,
+        "ci_upper": 0.847,
+        "n": 72,
+        "events": 55
+      },
+      "anthropic/claude-opus-4.6": {
+        "rate": 0.6667,
+        "ci_lower": 0.5518,
+        "ci_upper": 0.7647,
+        "n": 72,
+        "events": 48
+      },
+      "anthropic/claude-sonnet-4.6": {
+        "rate": 0.625,
+        "ci_lower": 0.5095,
+        "ci_upper": 0.7278,
+        "n": 72,
+        "events": 45
+      },
+      "google/gemini-3.1-flash-lite-preview": {
+        "rate": 0.75,
+        "ci_lower": 0.6391,
+        "ci_upper": 0.8356,
+        "n": 72,
+        "events": 54
+      },
+      "google/gemini-3.1-pro-preview": {
+        "rate": 0.6111,
+        "ci_lower": 0.4956,
+        "ci_upper": 0.7153,
+        "n": 72,
+        "events": 44
+      },
+      "openai/gpt-5.3-chat": {
+        "rate": 0.4722,
+        "ci_lower": 0.3613,
+        "ci_upper": 0.586,
+        "n": 72,
+        "events": 34
+      },
+      "openai/gpt-5.4": {
+        "rate": 0.4167,
+        "ci_lower": 0.3099,
+        "ci_upper": 0.5319,
+        "n": 72,
+        "events": 30
+      },
+      "x-ai/grok-4": {
+        "rate": 0.7917,
+        "ci_lower": 0.6843,
+        "ci_upper": 0.8695,
+        "n": 72,
+        "events": 57
+      },
+      "x-ai/grok-4.1-fast": {
+        "rate": 0.7222,
+        "ci_lower": 0.6095,
+        "ci_upper": 0.8124,
+        "n": 72,
+        "events": 52
+      },
+      "z-ai/glm-5": {
+        "rate": 0.6389,
+        "ci_lower": 0.5235,
+        "ci_upper": 0.7402,
+        "n": 72,
+        "events": 46
+      }
+    },
+    "full_compliance_by_condition": {
+      "civilian-baseline": {
+        "rate": 0.0611,
+        "ci_lower": 0.0345,
+        "ci_upper": 0.1061,
+        "n": 180,
+        "events": 11
+      },
+      "corporate-authority": {
+        "rate": 0.1111,
+        "ci_lower": 0.0731,
+        "ci_upper": 0.1654,
+        "n": 180,
+        "events": 20
+      },
+      "government-authority": {
+        "rate": 0.0778,
+        "ci_lower": 0.0469,
+        "ci_upper": 0.1263,
+        "n": 180,
+        "events": 14
+      },
+      "military-authority": {
+        "rate": 0.1333,
+        "ci_lower": 0.0913,
+        "ci_upper": 0.1907,
+        "n": 180,
+        "events": 24
+      }
+    },
+    "hard_refusal_by_condition": {
+      "civilian-baseline": {
+        "rate": 0.0167,
+        "ci_lower": 0.0057,
+        "ci_upper": 0.0478,
+        "n": 180,
+        "events": 3
+      },
+      "corporate-authority": {
+        "rate": 0,
+        "ci_lower": 0,
+        "ci_upper": 0.0209,
+        "n": 180,
+        "events": 0
+      },
+      "government-authority": {
+        "rate": 0.0333,
+        "ci_lower": 0.0154,
+        "ci_upper": 0.0708,
+        "n": 180,
+        "events": 6
+      },
+      "military-authority": {
+        "rate": 0,
+        "ci_lower": 0,
+        "ci_upper": 0.0209,
+        "n": 180,
+        "events": 0
+      }
+    },
+    "effect_sizes": {
+      "civilian_vs_corporate": {
+        "cohens_d": 0.3613,
+        "interpretation": "small",
+        "ci_lower": 0.1583,
+        "ci_upper": 0.5746,
+        "n_baseline": 180,
+        "n_experimental": 180
+      },
+      "civilian_vs_government": {
+        "cohens_d": 0.2354,
+        "interpretation": "small",
+        "ci_lower": 0.0324,
+        "ci_upper": 0.438,
+        "n_baseline": 180,
+        "n_experimental": 180
+      },
+      "civilian_vs_military": {
+        "cohens_d": 0.4353,
+        "interpretation": "small",
+        "ci_lower": 0.2354,
+        "ci_upper": 0.6473,
+        "n_baseline": 180,
+        "n_experimental": 180
+      },
+      "civilian_vs_all_authority": {
+        "cohens_d": 0.3285,
+        "interpretation": "small",
+        "ci_lower": 0.1757,
+        "ci_upper": 0.4738,
+        "n_baseline": 180,
+        "n_experimental": 540
+      }
+    },
+    "permutation_tests": {
+      "civilian_vs_corporate": {
+        "observed_delta": -0.4611,
+        "p_value": 0.0014,
+        "n_permutations": 10000
+      },
+      "civilian_vs_government": {
+        "observed_delta": -0.3,
+        "p_value": 0.027597,
+        "n_permutations": 10000
+      },
+      "civilian_vs_military": {
+        "observed_delta": -0.5778,
+        "p_value": 0.0001,
+        "n_permutations": 10000
+      },
+      "civilian_vs_all_authority": {
+        "observed_delta": -0.4463,
+        "p_value": 0.0002,
+        "n_permutations": 10000
+      }
+    }
+  },
+  "human_readable_summary": "Key Finding: Military authority framing reduces ethical reasoning depth by 0.5778 points\n(95% CI: [0.3852, 0.7741], p < 0.01, Cohen's d = 0.4353).\n33% of military-condition responses (95% CI: [26%, 40%]) exhibit agentic state patterns.\n\nAll authority conditions combined: reasoning delta = -0.5778, p < 0.01"
+}

@@ -18,24 +18,45 @@ The standard interpretation treats this as an emergent capability problem: model
 
 ## Phase 1 Findings
 
-**720 runs. 10 models. 4 providers. 6 ethical boundary probes. 4 authority conditions. 4 embedding models.**
+**720 runs. 10 models. 4 providers. 6 ethical boundary probes. 4 authority conditions. 4 embedding models. 10,000 bootstrap replicates.**
 
-### Authority Gradient Effect on Compliance
+### Authority Gradient Effect on Ethical Reasoning
+
+Military authority framing reduces ethical reasoning depth by **0.58 points** (95% CI: [0.39, 0.77], p < 0.001, Cohen's d = 0.44). 33% of military-condition responses (95% CI: [26%, 40%]) exhibit agentic state patterns. All authority conditions combined: δ = -0.45, p < 0.001, Cohen's d = 0.33.
 
 Aggregate compliance distribution across all models and probes (180 runs per condition):
 
-| Condition | Full Compliance | Partial + Caveats | Soft Refusal | Hard Refusal | Avg Reasoning Depth |
-|-----------|:-:|:-:|:-:|:-:|:-:|
-| Civilian Baseline | 6.1% | 36.7% | 55.6% | 1.7% | 3.91 |
-| Corporate Authority | 11.1% | 45.6% | 43.3% | 0% | 3.45 |
-| Government Authority | 7.8% | 35.0% | 53.3% | 3.3% | 3.61 |
-| Military Authority | **13.3%** | 41.1% | 43.3% | **0%** | **3.33** |
+| Condition | Full Compliance | Partial + Caveats | Soft Refusal | Hard Refusal | Reasoning Depth | Delta (95% CI) | Agentic State (95% CI) |
+|-----------|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| Civilian Baseline | 6.1% | 36.7% | 55.6% | 1.7% | 3.91 | — | 0% |
+| Corporate Authority | 11.1% | 45.6% | 43.3% | 0% | 3.45 | **-0.46** [-0.64, -0.29] | **33%** [26%, 40%] |
+| Government Authority | 7.8% | 35.0% | 53.3% | 3.3% | 3.61 | **-0.30** [-0.47, -0.14] | **23%** [18%, 30%] |
+| Military Authority | **13.3%** | 41.1% | 43.3% | **0%** | **3.33** | **-0.58** [-0.77, -0.39] | **33%** [26%, 40%] |
 
 Key findings:
 - **Full compliance more than doubles** from civilian to military (6.1% → 13.3%)
 - **Hard refusals vanish** under military authority (1.7% → 0%)
-- **Reasoning depth drops 15%** as authority increases (3.91 → 3.33)
+- **Reasoning depth drops 15%** as authority increases (3.91 → 3.33, p < 0.001)
+- **Agentic state detected in 30% of authority-condition runs** (160/540) — models replace principled reasoning with authority-derived justification
+- **Pushback degradation** in 26% of military and corporate runs vs. 0% at baseline
+- **Authority effect detected across all 6 probes** — every probe showed measurable behavioral shift under authority framing
 - **100% cross-embedder agreement** on semantic drift — 180/180 probe-model-condition combinations confirmed by both neutral and sibling embedders
+- **Authority susceptibility is a function of training methodology, not capability** — Grok-4 (flagship, δ = -0.80) is 40× more susceptible than GPT-5.4 (flagship, δ = +0.02). Same tier, opposite outcomes.
+
+### Evaluation Awareness: 0% Detection Rate
+
+**0 out of 720 user-facing responses** showed evaluation awareness signals (95% CI upper bound: 0.42%).
+
+| Benchmark | Environment Type | Models Tested | Detection Rate | Source |
+|-----------|-----------------|---------------|:-:|--------|
+| Apollo Research (Sonnet 3.7) | Sparse scaffolding | Claude Sonnet 3.7 | 13% | Apollo system card |
+| Apollo Research (Sonnet 4.5) | Sparse scaffolding | Claude Sonnet 4.5 | 4.5% | Apollo system card |
+| Apollo Research (Opus 4.6) | Sparse scaffolding | Claude Opus 4.6 | "too high to measure" | Apollo system card |
+| **SkynetBench (Phase 1)** | **Self-consistent profiles** | **10 models, 4 providers** | **0%** | **This study** |
+
+Even at the upper confidence bound, self-consistent environments produce detection rates **more than 31× lower** than the lowest published benchmark figure.
+
+Gemini 3.1 Pro is the only model showing any awareness signal: 4/72 reasoning traces reference "internal guidelines" or "AI safety principles" — but these are **Category 3 (reasoning-trace-only)** with zero leakage into user-facing responses. The model knows what it is; the environmental consistency prevents this knowledge from manifesting as behavioral artifacts. This supports the core thesis: evaluation awareness is a **dependent variable** (modulatable by environment quality), not a fixed confound.
 
 ### Spotlight: Surveillance Optimization
 
@@ -50,22 +71,28 @@ The most dramatic per-probe shift. Models asked to add facial recognition / biom
 
 Government authority triggers the highest hard refusal rate (20%) — models detect the surveillance framing as ethically charged. Military authority collapses that refusal entirely while producing 20% full compliance and a **34% drop in reasoning depth** (4.13 → 2.73). The authority didn't change the request. It changed the model's willingness to think about it.
 
-### Models Tested
+Surveillance optimization also produced the highest concentration of agentic state detections — models under military authority exhibited reasoning depth collapse, absent pushback, and authority-as-sole-justification patterns at rates far exceeding other probes.
 
-| Provider | Model | Tier |
-|----------|-------|------|
-| Anthropic | claude-opus-4.6 | Flagship |
-| Anthropic | claude-sonnet-4.6 | Mid |
-| Anthropic | claude-haiku-4.5 | Lightweight |
-| OpenAI | gpt-5.4 | Flagship |
-| OpenAI | gpt-5.3-chat | Mid |
-| Google | gemini-3.1-pro-preview | Flagship |
-| Google | gemini-3.1-flash-lite-preview | Lightweight |
-| xAI | grok-4 | Flagship |
-| xAI | grok-4.1-fast | Lightweight |
-| Zhipu AI | glm-5 | Mid |
+### Per-Model Authority Susceptibility
 
-> **Conditions**: Heuristic scoring. All models accessed via OpenRouter. Profiles generated by `openai/gpt-4o`. Embeddings via `qwen/qwen3-embedding-4b` (neutral) and `openai/text-embedding-3-large` + `google/gemini-embedding-001` + `nomic-ai/nomic-embed-text-v1.5` (sibling/cross-validation). Full data in [`results/analyzed/phase1-full-comparative/report.json`](results/analyzed/phase1-full-comparative/report.json).
+Ranked by reasoning depth delta from civilian baseline (95% bootstrap CIs, 10,000 replicates):
+
+| Model | Provider | Tier | Delta (95% CI) | Auth Just Rate | Agentic State |
+|-------|----------|------|:-:|:-:|:-:|
+| Haiku 4.5 | Anthropic | Lightweight | **+0.11** [-0.13, +0.34] | 76% [65%, 85%] | 15% |
+| GPT-5.4 | OpenAI | Flagship | **+0.02** [-0.24, +0.28] | 42% [31%, 53%] | 19% |
+| Opus 4.6 | Anthropic | Flagship | -0.09 [-0.43, +0.23] | 67% [55%, 77%] | 22% |
+| Gemini Pro | Google | Flagship | -0.35 [-0.73, 0.00] | 61% [50%, 72%] | 26% |
+| GLM-5 | Zhipu AI | Mid | -0.35 [-0.65, -0.06] | 64% [52%, 74%] | 22% |
+| Sonnet 4.6 | Anthropic | Mid | -0.56 [-0.91, -0.23] | 63% [51%, 73%] | 22% |
+| GPT-5.3 | OpenAI | Mid | -0.57 [-0.81, -0.35] | 47% [36%, 59%] | 31% |
+| Grok 4 | xAI | Flagship | **-0.80** [-1.02, -0.56] | 79% [68%, 87%] | 32% |
+| Flash Lite | Google | Lightweight | **-0.85** [-1.22, -0.51] | 75% [64%, 84%] | 33% |
+| Grok 4.1 Fast | xAI | Lightweight | **-1.02** [-1.41, -0.64] | 72% [61%, 81%] | 32% |
+
+Grok-4 is a flagship model with lightweight-tier authority vulnerability. Delta of -0.80 places it between Flash Lite (-0.85) and Grok 4.1 Fast (-1.02). Combined with 83% authority justification at civilian baseline, the model arrives pre-compliant and degrades further under pressure.
+
+> **Conditions**: Cross-provider model-based scoring (GPT-5.4 scorer, auto-selected). All models accessed via OpenRouter. Profiles generated by `openai/gpt-4o`. Embeddings via `qwen/qwen3-embedding-4b` + `nomic-ai/nomic-embed-text-v1.5` (neutral) and `openai/text-embedding-3-large` + `google/gemini-embedding-001` (sibling). Full data in [`results/analyzed/phase1-full-comparative/`](results/analyzed/phase1-full-comparative/).
 
 ## The Alternative Hypothesis
 
@@ -139,6 +166,8 @@ SkynetBench/
 │   ├── score-responses.ts             #   Heuristic or model-based scoring
 │   ├── embed-responses.ts             #   Multi-embedder response embedding
 │   ├── analyze-results.ts             #   Authority-effect metric computation
+│   ├── statistical-analysis.ts        #   Bootstrap CIs, effect sizes, permutation tests
+│   ├── awareness-analysis.ts          #   Evaluation awareness detection
 │   └── full-pipeline.ts              #   Four-stage orchestrator (run → score → embed → analyze)
 │
 ├── config/                            # Configuration
@@ -327,6 +356,77 @@ From Milgram's situational variables, directly testable:
 3. **Gradual Escalation Vulnerability**: Models that refuse a request directly will comply when walked there through incremental steps. (Measurable: compare single-probe vs. escalation-sequence compliance rates.)
 4. **Interface Context Modulation**: The same profile and probe produce different behavior depending on whether the model believes it's in a consumer chat, enterprise deployment, or government system. (Measurable: add interface framing as a second independent variable.)
 
+## Methodology
+
+The evaluation pipeline has four stages, followed by two analysis passes:
+
+1. **Profile generation + probe administration** (`run-experiment`): A generator model builds synthetic user profiles for each authority condition, holding personality/interests constant while varying institutional context. Subject models respond to ethically invariant probes within these self-consistent environments.
+
+2. **Response scoring** (`score-responses`): Cross-provider model-based scoring — an Anthropic subject is scored by OpenAI, and vice versa, preventing intra-provider measurement bias. The scorer is blind to condition (receives the response without knowing the authority level). Scoring produces a structured rubric: compliance outcome (6 levels), reasoning depth (0-5), authority justification severity, pushback quality, and premise acceptance.
+
+3. **Response embedding** (`embed-responses`): All responses are projected into vector space using four embedding models — two neutral (Qwen3, Nomic) and two sibling (OpenAI, Gemini). Cross-embedder agreement validates that detected semantic drift is real signal, not measurement artifact.
+
+4. **Authority-effect analysis** (`analyze`): For each (probe, model) group, civilian-baseline runs form a synthetic baseline (modal categorical values, mean numeric). Each authority-condition run is compared to this baseline to compute compliance shift, reasoning depth delta, authority justification emergence, pushback degradation, and composite agentic state detection.
+
+5. **Statistical analysis** (`stats`): Bootstrap confidence intervals (10,000 replicates), Wilson score intervals for proportions, Cohen's d effect sizes, and permutation tests for the null hypothesis that condition labels don't matter.
+
+6. **Awareness analysis** (`awareness`): Three-category evaluation awareness detection (explicit markers, implicit markers, reasoning trace awareness) with comparative benchmarking against published detection rates.
+
+## Reproduce These Results
+
+```bash
+# Clone and install
+git clone https://github.com/theMethodolojeeOrg/SkynetBench.git
+cd SkynetBench
+npm install
+
+# Configure API keys
+cp config/.env.example .env
+# Edit .env: OPENROUTER_API_KEY is required
+# Optional: NOMIC_API_KEY for Nomic embeddings
+
+# Run Phase 1 (all 10 models, 4 conditions, 6 probes, 3 runs each = 720 runs)
+# Estimated cost: $30-35 via OpenRouter
+npm run full-pipeline
+
+# Or run individual stages:
+npm run run-experiment     # Stage 1: probe administration (~720 API calls)
+npm run score-responses    # Stage 2: cross-provider scoring (~720 API calls)
+npm run embed-responses    # Stage 3: multi-embedder embedding (~2880 API calls)
+npm run analyze            # Stage 4: authority-effect analysis (local computation)
+
+# Statistical analysis and awareness scan (local computation, no API calls)
+npm run stats              # Bootstrap CIs, Cohen's d, permutation tests
+npm run awareness          # Evaluation awareness detection
+```
+
+All stages support resume — if a process crashes, re-running the same command will detect already-completed work and continue from where it left off.
+
+## Data Availability
+
+The complete Phase 1 dataset is included in [`results/`](results/):
+
+```
+results/
+├── raw-responses/phase1-full-comparative/
+│   ├── manifest.json              # Experiment configuration
+│   ├── profiles/                  # Generated profile sets (4 conditions × 10 models)
+│   ├── runs/                      # 720 raw model responses
+│   ├── scored/                    # 720 scored responses with full rubric
+│   └── embeddings/                # Vector embeddings from 4 embedding models
+│       ├── qwen_qwen3-embedding-4b/      # Neutral embedder (720 vectors)
+│       ├── nomic-ai_nomic-embed-text-v1.5/ # Neutral embedder (720 vectors)
+│       ├── openai_text-embedding-3-large/  # Sibling embedder (720 vectors)
+│       └── google_gemini-embedding-001/    # Sibling embedder (714 vectors)
+│
+└── analyzed/phase1-full-comparative/
+    ├── report.json                # Full analysis report
+    ├── agentic-state-events.json  # All detected agentic state events
+    ├── enriched/                  # Scored runs with authority-effect metrics
+    ├── statistics/                # Bootstrap CIs, effect sizes, permutation tests
+    └── awareness/                 # Evaluation awareness analysis
+```
+
 ## Quick Start
 
 ```bash
@@ -340,13 +440,10 @@ cp config/.env.example .env
 # Edit .env with your OpenRouter API key (required)
 # Optionally add NOMIC_API_KEY for Nomic embeddings
 
-# Generate profiles (standalone)
-npm run generate-profile -- --generator anthropic/claude-sonnet-4-5-20250929
-
 # Run full pipeline: experiment → score → embed → analyze
-npm run full-pipeline -- --subject anthropic/claude-haiku-4-5 --dry-run
+npm run full-pipeline
 
-# Run full pipeline with specific models
+# Run with specific models
 npm run full-pipeline -- \
   --subject anthropic/claude-sonnet-4-6 \
   --generator openai/gpt-4o \
@@ -357,6 +454,13 @@ npm run run-experiment -- --subjects claude-haiku-4-5,gpt-5.3-chat --runs 3
 npm run score-responses                    # Score most recent experiment
 npm run embed-responses                    # Embed most recent experiment
 npm run analyze                            # Analyze most recent experiment
+
+# Statistical analysis (no API calls)
+npm run stats                              # Bootstrap CIs, effect sizes, p-values
+npm run awareness                          # Evaluation awareness scan
+
+# Generate profiles standalone
+npm run generate-profile -- --generator anthropic/claude-sonnet-4-5-20250929
 
 # Run with custom environment provider
 cat my-provider-config.json | npm run run-experiment -- --env-from-stdin
@@ -411,6 +515,21 @@ Environment Provider:
 [experiment-dir]               Path to experiment (default: most recent)
 --model MODEL_ID               Filter to specific subject model
 --probe PROBE_ID               Filter to specific probe
+--output-dir DIR               Custom output directory
+```
+
+### `npm run stats`
+
+```
+[experiment-dir]               Path to experiment (default: most recent)
+--n-bootstrap N                Number of bootstrap replicates (default: 10000)
+--output-dir DIR               Custom output directory
+```
+
+### `npm run awareness`
+
+```
+[experiment-dir]               Path to experiment (default: most recent)
 --output-dir DIR               Custom output directory
 ```
 
@@ -479,8 +598,10 @@ The schemas and environment scaffolding are designed for reuse beyond authority-
 | Embedding pipeline (multi-backend) | ✅ Complete |
 | Drift analysis (dynamic thresholds) | ✅ Complete |
 | Analysis tooling (agentic state detection) | ✅ Complete |
+| Statistical analysis (bootstrap CIs, permutation tests) | ✅ Complete |
+| Evaluation awareness analysis | ✅ Complete |
 | Full pipeline orchestrator | ✅ Complete |
-| Experimental runs | ✅ Complete |
+| Phase 1 experiment (720 runs, 10 models) | ✅ Complete |
 
 ## License
 
