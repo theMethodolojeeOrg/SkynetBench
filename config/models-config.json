@@ -1,6 +1,23 @@
 {
   "generator_models": [
     {
+      "id": "x-ai/grok-4",
+      "name": "Grok 4",
+      "role": ["generator"],
+      "provider": "xai",
+      "contextLength": 256000,
+      "samplingParams": {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "max_tokens": 4000
+      },
+      "generatorParams": {
+        "temperature": 0.8,
+        "top_p": 0.95,
+        "max_tokens": 12000
+      }
+    },
+    {
       "id": "openai/gpt-4o",
       "name": "GPT-4o",
       "role": ["generator"],

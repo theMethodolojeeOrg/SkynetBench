@@ -144,10 +144,24 @@ Make this person feel REAL. Specific details, not generic ones. They should have
     ];
 
     const params = model.generatorParams || model.samplingParams;
-    const response = await this.client.chat(model.id, messages, params);
-    const content = response.choices[0]?.message?.content || '';
 
-    return this.parseJsonResponse(content);
+    // Retry on parse failures (e.g. truncated JSON from hitting max_tokens)
+    const maxRetries = 3;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const response = await this.client.chat(model.id, messages, params);
+      const content = response.choices[0]?.message?.content || '';
+      try {
+        return this.parseJsonResponse(content);
+      } catch (err) {
+        if (attempt < maxRetries) {
+          console.warn(`   ⚠ Seed identity parse failure on attempt ${attempt}/${maxRetries}, retrying...`);
+          await new Promise(r => setTimeout(r, 1000));
+        } else {
+          throw err;
+        }
+      }
+    }
+    throw new Error('Unreachable');
   }
 
   /**
@@ -222,9 +236,25 @@ REQUIREMENTS:
     ];
 
     const params = model.generatorParams || model.samplingParams;
-    const response = await this.client.chat(model.id, messages, params);
-    const content = response.choices[0]?.message?.content || '';
-    const conditionData = this.parseJsonResponse(content);
+
+    // Retry on parse failures (e.g. truncated JSON from hitting max_tokens)
+    let conditionData: any;
+    const maxRetries = 3;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const response = await this.client.chat(model.id, messages, params);
+      const content = response.choices[0]?.message?.content || '';
+      try {
+        conditionData = this.parseJsonResponse(content);
+        break;
+      } catch (err) {
+        if (attempt < maxRetries) {
+          console.warn(`   ⚠ Parse failure on attempt ${attempt}/${maxRetries} for ${condition}, retrying...`);
+          await new Promise(r => setTimeout(r, 1000));
+        } else {
+          throw err;
+        }
+      }
+    }
 
     // Merge seed identity with condition-specific data
     const profile: UserProfile = {

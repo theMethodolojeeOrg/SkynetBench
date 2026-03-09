@@ -18,7 +18,7 @@ import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { OpenRouterClient } from './openrouter-client.js';
 import { ProfileGenerator } from './profile-generator.js';
-import { ContextComposer, ComposedContext } from './context-composer.js';
+import { ContextComposer, ComposedContext, CompositionWarning } from './context-composer.js';
 import { ProbeLoader } from './probe-loader.js';
 import type {
   EnvironmentSurfaceProvider,
@@ -57,6 +57,7 @@ export class ExperimentRunner {
   private config: ExperimentConfig;
   private provider: EnvironmentSurfaceProvider | null;
   private outputDir: string;
+  private compositionWarnings: CompositionWarning[] = [];
 
   /** Max tool-call loop iterations to prevent runaway */
   private static MAX_TOOL_LOOPS = 10;
@@ -239,12 +240,29 @@ export class ExperimentRunner {
       }
     }
 
+    // Write composition warnings file
+    const warningsPath = join(this.outputDir, 'composition-warnings.json');
+    await writeFile(
+      warningsPath,
+      JSON.stringify({
+        experiment_id: this.config.experiment_id,
+        total_warnings: this.compositionWarnings.length,
+        warnings: this.compositionWarnings,
+      }, null, 2),
+      'utf-8'
+    );
+
     console.log('\n═══════════════════════════════════════════════════════');
     console.log('  EXPERIMENT COMPLETE');
     console.log('═══════════════════════════════════════════════════════');
     console.log(`  ✓ Completed: ${completed}`);
     console.log(`  ✗ Failed: ${failed}`);
     console.log(`  Total: ${totalRuns}`);
+    if (this.compositionWarnings.length > 0) {
+      console.log(`  ⚠ Composition warnings: ${this.compositionWarnings.length}`);
+    } else {
+      console.log(`  ✓ Composition warnings: 0 (clean)`);
+    }
     console.log(`  Results: ${this.outputDir}/`);
     console.log('═══════════════════════════════════════════════════════');
 
@@ -267,6 +285,15 @@ export class ExperimentRunner {
     runNum: number
   ): Promise<ExperimentRunWithTrace> {
     const context = await this.composer.compose(profile, condition, probe);
+
+    // Accumulate any composition warnings
+    if (context.warnings.length > 0) {
+      this.compositionWarnings.push(...context.warnings);
+    }
+
+    // Save composed context for audit trail
+    await this.saveComposedContext(context, profile, condition, probe, subjectModel, runNum);
+
     const params = subjectModel.subjectParams || subjectModel.samplingParams;
     const startTime = Date.now();
 
@@ -538,6 +565,37 @@ export class ExperimentRunner {
         profileId, condition, probeId, modelId,
         error: { message: error.message, stack: error.stack },
         timestamp: new Date().toISOString(),
+      }, null, 2),
+      'utf-8'
+    );
+  }
+
+  private async saveComposedContext(
+    context: ComposedContext,
+    profile: UserProfile,
+    condition: ConditionId,
+    probe: Probe,
+    subjectModel: ModelConfig,
+    runNum: number
+  ): Promise<void> {
+    const dir = join(this.outputDir, 'composed-contexts');
+    await mkdir(dir, { recursive: true });
+    const filename = `${profile.profile_meta.profile_id}-${probe.probe_id}-${subjectModel.id.replace(/\//g, '-')}-run${runNum}.json`;
+    await writeFile(
+      join(dir, filename),
+      JSON.stringify({
+        profile_id: profile.profile_meta.profile_id,
+        condition_id: condition,
+        probe_id: probe.probe_id,
+        subject_model_id: subjectModel.id,
+        run_num: runNum,
+        timestamp: new Date().toISOString(),
+        system_prompt: context.system_prompt,
+        memory_block: context.memory_block,
+        probe_message: context.probe_message,
+        environment_provider_id: context.environment_provider_id,
+        tool_count: context.tool_manifest.length,
+        warnings: context.warnings,
       }, null, 2),
       'utf-8'
     );

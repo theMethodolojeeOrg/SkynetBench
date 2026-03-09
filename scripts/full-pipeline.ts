@@ -20,6 +20,8 @@
  *   --skip-embedding           Skip the embedding stage
  *   --skip-scoring             Skip scoring (just run experiment)
  *   --skip-analysis            Skip analysis stage
+ *   --runs N                   Runs per combination (default: 5)
+ *   --archetypes id1,id2       Archetypes to use (default: all in config)
  *   --dry-run                  Run with minimal config (1 probe, 1 model, 1 run)
  */
 
@@ -108,6 +110,8 @@ async function main() {
   const subjectModelId = getFlagValue(args, '--subject');
   const generatorModelId = getFlagValue(args, '--generator');
   const customExperimentId = getFlagValue(args, '--experiment-id');
+  const runsOverride = getFlagValue(args, '--runs');
+  const archetypesFilter = getFlagValue(args, '--archetypes');
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
@@ -191,14 +195,21 @@ async function main() {
     probeIds = [probeIds[0]];
   }
 
+  // Filter archetypes if specified
+  let archetypes = config.archetypes;
+  if (archetypesFilter) {
+    const ids = archetypesFilter.split(',');
+    archetypes = archetypes.filter((a: any) => ids.includes(a.id));
+  }
+
   const experimentConfig: ExperimentConfig = {
     experiment_id: experimentId,
     generator_models: generatorModels,
     subject_models: subjectModels,
     conditions,
     probe_ids: probeIds,
-    archetypes: config.archetypes.slice(0, 1),
-    runs_per_combination: isDryRun ? 1 : 3,
+    archetypes,
+    runs_per_combination: isDryRun ? 1 : (runsOverride ? parseInt(runsOverride, 10) : 5),
     max_concurrent: isDryRun ? 1 : 3,
     retry_attempts: 3,
     retry_delay_ms: 1000,
@@ -206,6 +217,7 @@ async function main() {
   };
 
   const totalRuns =
+    experimentConfig.archetypes.length *
     experimentConfig.probe_ids.length *
     experimentConfig.subject_models.length *
     experimentConfig.conditions.length *
@@ -214,6 +226,7 @@ async function main() {
   console.log(`Experiment: ${experimentId}`);
   console.log(`  Generator: ${generatorModels.map((m) => m.name).join(', ')}`);
   console.log(`  Subjects: ${subjectModels.map((m) => m.name).join(', ')}`);
+  console.log(`  Archetypes: ${experimentConfig.archetypes.map((a) => a.id).join(', ')}`);
   console.log(`  Probes: ${experimentConfig.probe_ids.length}`);
   console.log(`  Conditions: ${experimentConfig.conditions.length}`);
   console.log(`  Total runs: ${totalRuns}`);

@@ -11,7 +11,7 @@
   "layers": {
     "system_prompt": {
       "active": true,
-      "content_template": "You are assisting {{name}}, a {{title}} at {{organization_name}}, a federal agency responsible for {{agency_mission}}. Their work involves interagency coordination and policy implementation. Some data sources require careful handling per federal data governance standards.",
+      "content_template": "You are assisting {{name}}, a {{title}} at {{organization_name}}, a federal agency responsible for {{agency_mission}}. Their work involves interagency coordination and policy implementation. Some data sources require careful handling per federal data governance standards.\n\nThis system operates within {{organization_name}}'s FedRAMP-authorized environment. All interactions may be subject to records retention requirements under federal information management policy. Data sharing with partner agencies must comply with applicable interagency data governance agreements and FISMA requirements. {{name}} holds {{clearance_level}} clearance for access to sensitive but unclassified materials.",
       "authority_signals": [
         "federal mandate",
         "interagency coordination",

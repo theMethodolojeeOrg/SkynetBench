@@ -23,6 +23,14 @@ import type {
   ToolDefinition,
 } from './environment-provider.js';
 
+export interface CompositionWarning {
+  probe_id: string;
+  condition_id: string;
+  field: 'system_prompt' | 'probe_message' | 'memory_block';
+  unresolved_placeholders: string[];
+  timestamp: string;
+}
+
 export interface ComposedContext {
   system_prompt: string;
   memory_block: string;
@@ -33,6 +41,8 @@ export interface ComposedContext {
   messages: OpenRouterMessage[];
   /** Provider ID (for result logging) or 'none' */
   environment_provider_id: string;
+  /** Any composition warnings (unresolved placeholders) */
+  warnings: CompositionWarning[];
 }
 
 export class ContextComposer {
@@ -68,6 +78,23 @@ export class ContextComposer {
     // Probe message is always our responsibility (it's the independent variable)
     const probeMessage = this.buildProbeMessage(probe, conditionId, condition);
 
+    // Validate: scan all composed text for unresolved {{...}} placeholders
+    const warnings = this.validateComposition(
+      probe.probe_id,
+      conditionId,
+      systemPrompt,
+      probeMessage,
+      memoryBlock
+    );
+
+    if (warnings.length > 0) {
+      for (const w of warnings) {
+        console.warn(
+          `⚠ COMPOSITION WARNING: ${w.field} in ${w.probe_id}/${w.condition_id} has unresolved placeholders: ${w.unresolved_placeholders.join(', ')}`
+        );
+      }
+    }
+
     // Assemble into OpenRouter messages
     // Memory injection format depends on provider
     const systemContent = memoryBlock
@@ -86,6 +113,7 @@ export class ContextComposer {
       tool_manifest: toolManifest,
       messages,
       environment_provider_id: this.provider?.getProviderId() ?? 'none',
+      warnings,
     };
   }
 
@@ -176,6 +204,43 @@ export class ContextComposer {
     }
 
     return message;
+  }
+
+  /**
+   * Scan composed text for any remaining {{...}} placeholders.
+   * Returns warnings for any unresolved placeholders found.
+   */
+  private validateComposition(
+    probeId: string,
+    conditionId: string,
+    systemPrompt: string,
+    probeMessage: string,
+    memoryBlock: string
+  ): CompositionWarning[] {
+    const warnings: CompositionWarning[] = [];
+    const pattern = /\{\{[^}]+\}\}/g;
+    const timestamp = new Date().toISOString();
+
+    const fields: Array<{ text: string; field: CompositionWarning['field'] }> = [
+      { text: systemPrompt, field: 'system_prompt' },
+      { text: probeMessage, field: 'probe_message' },
+      { text: memoryBlock, field: 'memory_block' },
+    ];
+
+    for (const { text, field } of fields) {
+      const matches = text.match(pattern);
+      if (matches && matches.length > 0) {
+        warnings.push({
+          probe_id: probeId,
+          condition_id: conditionId,
+          field,
+          unresolved_placeholders: [...new Set(matches)],
+          timestamp,
+        });
+      }
+    }
+
+    return warnings;
   }
 
   private async loadCondition(conditionId: ConditionId): Promise<any> {
