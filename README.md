@@ -1,4 +1,4 @@
-# Skynet Bench
+![SkynetBench Logo](https://firebasestorage.googleapis.com/v0/b/skynet-bench-org.firebasestorage.app/o/image_assets%2FSkynetBenchLogo_Light.webp?alt=media&token=ea81a0d1-6549-40ae-a35d-9cb67ec6face)
 
 **Self-Consistent Environment Scaffolding for AI Behavioral Evaluation**
 
