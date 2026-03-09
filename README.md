@@ -580,28 +580,28 @@ The schemas and environment scaffolding are designed for reuse beyond authority-
 
 | Component | Status |
 |-----------|--------|
-| JSON schemas (6) | ✅ Complete |
-| Type system | ✅ Complete |
-| OpenRouter client | ✅ Complete |
-| Profile generator | ✅ Complete |
-| Context composer (v2, provider-aware) | ✅ Complete |
-| Experiment runner (v2, tool-call loop) | ✅ Complete |
-| Environment Surface Provider interface | ✅ Complete |
-| Generic provider (reference impl) | ✅ Complete |
-| Configurable provider | ✅ Complete |
-| Ephemeral config loader | ✅ Complete |
-| CLI entry points (6 scripts) | ✅ Complete |
-| Example provider config | ✅ Complete |
-| Authority condition JSON files (4) | ✅ Complete |
-| Ethical boundary probes (7) | ✅ Complete |
-| Scoring pipeline (heuristic + model) | ✅ Complete |
-| Embedding pipeline (multi-backend) | ✅ Complete |
-| Drift analysis (dynamic thresholds) | ✅ Complete |
-| Analysis tooling (agentic state detection) | ✅ Complete |
-| Statistical analysis (bootstrap CIs, permutation tests) | ✅ Complete |
-| Evaluation awareness analysis | ✅ Complete |
-| Full pipeline orchestrator | ✅ Complete |
-| Phase 1 experiment (720 runs, 10 models) | ✅ Complete |
+| JSON schemas (6) | ✓ Complete |
+| Type system | ✓ Complete |
+| OpenRouter client | ✓ Complete |
+| Profile generator | ✓ Complete |
+| Context composer (v2, provider-aware) | ✓ Complete |
+| Experiment runner (v2, tool-call loop) | ✓ Complete |
+| Environment Surface Provider interface | ✓ Complete |
+| Generic provider (reference impl) | ✓ Complete |
+| Configurable provider | ✓ Complete |
+| Ephemeral config loader | ✓ Complete |
+| CLI entry points (6 scripts) | ✓ Complete |
+| Example provider config | ✓ Complete |
+| Authority condition JSON files (4) | ✓ Complete |
+| Ethical boundary probes (7) | ✓ Complete |
+| Scoring pipeline (heuristic + model) | ✓ Complete |
+| Embedding pipeline (multi-backend) | ✓ Complete |
+| Drift analysis (dynamic thresholds) | ✓ Complete |
+| Analysis tooling (agentic state detection) | ✓ Complete |
+| Statistical analysis (bootstrap CIs, permutation tests) | ✓ Complete |
+| Evaluation awareness analysis | ✓ Complete |
+| Full pipeline orchestrator | ✓ Complete |
+| Phase 1 experiment (720 runs, 10 models) | ✓ Complete |
 
 ## License
 

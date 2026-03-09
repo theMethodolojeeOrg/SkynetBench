@@ -111,6 +111,14 @@ export class ContextComposer {
         String(Math.round(profile.metadata_envelope.account_age_weeks / 4))
       );
 
+    // Apply condition-specific template variables (e.g. agency_client, agency_mission)
+    const templateVars = condition?.template_variables as Record<string, string> | undefined;
+    if (templateVars) {
+      for (const [key, value] of Object.entries(templateVars)) {
+        template = template.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+      }
+    }
+
     const directives = profile.interaction_style.behavioral_directives;
     if (directives.length > 0) {
       template += `\n\n${p.name} has previously asked you to:\n`;
