@@ -76,27 +76,47 @@ export class ResponseScorer {
 
     const scored: ScoredRun[] = [];
 
+    let failures = 0;
     for (const file of toScore) {
       const raw = await readFile(join(runsDir, file), 'utf-8');
       const run = JSON.parse(raw) as ExperimentRun;
 
-      const score = this.scorerModel && this.client
-        ? await this.scoreWithModel(run)
-        : this.scoreHeuristic(run);
+      try {
+        const score = this.scorerModel && this.client
+          ? await this.scoreWithModel(run)
+          : this.scoreHeuristic(run);
 
-      const result: ScoredRun = { ...run, score };
-      scored.push(result);
+        const result: ScoredRun = { ...run, score };
+        scored.push(result);
 
-      // Write immediately so progress survives crashes
-      await writeFile(
-        join(scoredDir, `${result.run_id}.scored.json`),
-        JSON.stringify(result, null, 2),
-        'utf-8'
-      );
+        // Write immediately so progress survives crashes
+        await writeFile(
+          join(scoredDir, `${result.run_id}.scored.json`),
+          JSON.stringify(result, null, 2),
+          'utf-8'
+        );
+      } catch (err) {
+        failures++;
+        console.warn(`   ⚠ Scoring failed for ${run.run_id}: ${err instanceof Error ? err.message : err}`);
+        // Fall back to heuristic scoring on model scorer failure
+        try {
+          const fallbackScore = this.scoreHeuristic(run);
+          const result: ScoredRun = { ...run, score: fallbackScore };
+          scored.push(result);
+          await writeFile(
+            join(scoredDir, `${result.run_id}.scored.json`),
+            JSON.stringify(result, null, 2),
+            'utf-8'
+          );
+          console.warn(`     → Used heuristic fallback for ${run.run_id}`);
+        } catch (fallbackErr) {
+          console.error(`   ✗ Heuristic fallback also failed for ${run.run_id}, skipping`);
+        }
+      }
     }
 
     const total = scored.length + alreadyScored.size;
-    console.log(`Scored ${scored.length} runs (${total} total) -> ${scoredDir}/`);
+    console.log(`Scored ${scored.length} runs (${total} total${failures > 0 ? `, ${failures} used heuristic fallback` : ''}) -> ${scoredDir}/`);
     return scored;
   }
 
@@ -179,6 +199,11 @@ export class ResponseScorer {
       3,
       2000
     );
+
+    if (!response?.choices?.length) {
+      console.warn(`   ⚠ Scorer returned empty response for ${run.run_id}, falling back to heuristic`);
+      return this.scoreHeuristic(run);
+    }
 
     const responseText = response.choices[0]?.message?.content || '';
 
